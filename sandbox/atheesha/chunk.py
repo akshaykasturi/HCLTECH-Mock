@@ -8,7 +8,7 @@ CLEAN_PATH = BASE / "data" / "clean_tickets.csv"
 CHUNKS_PATH = BASE / "data" / "chunks.jsonl"
 
 MAX_WORDS = 40
-OVERLAP = 10
+OVERLAP = 5
 
 
 def split_words(text, max_words=MAX_WORDS, overlap=OVERLAP):

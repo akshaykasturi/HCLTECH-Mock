@@ -107,13 +107,16 @@ def test_chunks_never_exceed_40_words(chunks):
 
 
 def test_overlap_is_correct_and_no_words_cut():
+    assert chunk.OVERLAP == 5
     words = [f"w{i}" for i in range(100)]
     parts = [p.split() for p in chunk.split_words(" ".join(words))]
-    assert len(parts) == 3
+    # step = 40 - 5 = 35 -> chunks start at w0, w35, w70
+    assert [p[0] for p in parts] == ["w0", "w35", "w70"]
     for a, b in zip(parts, parts[1:]):
-        assert a[-10:] == b[:10]
+        assert a[-5:] == b[:5]
+        assert a[-6] != b[0]  # overlap is exactly 5, not more
     # every chunk is a contiguous slice of whole words, and together they cover the text
-    rebuilt = parts[0] + [w for p in parts[1:] for w in p[10:]]
+    rebuilt = parts[0] + [w for p in parts[1:] for w in p[5:]]
     assert rebuilt == words
 
 
@@ -126,7 +129,7 @@ def test_overlap_on_dataset(chunks):
     for parts in multi:
         for a, b in zip(parts, parts[1:]):
             assert len(a) == 40
-            assert a[-10:] == b[:10]
+            assert a[-5:] == b[:5]
 
 
 def test_short_text_single_chunk():
