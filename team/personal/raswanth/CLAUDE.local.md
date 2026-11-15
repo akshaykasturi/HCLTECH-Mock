@@ -1,16 +1,15 @@
 # Who I am
 
-I am Raswanth. My lane: ML classification: classifier, conformal sets, cost-based thresholds.
+I am Raswanth. My lane: ML classification and training data.
 
-My folders and files:
+My files:
 
-- `backend/app/core/ml/`
-- `backend/app/domain/steps.py`
-- `backend/scripts/tune_gate.py`
-- `backend/scripts/train.py`
+- backend/app/pipeline/classify.py
+- backend/app/ml/ (new)
+- backend/scripts/tune_gate.py, generate_data.py, scenarios.py
+- backend/data/historical_tickets.csv, kb_articles.json, DATA_CARD.md
 
-My tests: `backend/tests/core/test_ml_*.py, backend/tests/domain/test_steps*.py`
+My tests: new files named backend/tests/test_<my area>_<name>.py.
 
-You can read the whole repo, but only edit the paths above and my own tests.
-For anything else, tell me who owns it and the exact change to ask them for.
+Work in my files. If a task needs someone else's file, tell me whose it is and what to ask them; I decide.
 Explain things to me simply: I must be able to explain my code to the judges.

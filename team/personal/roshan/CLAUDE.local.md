@@ -1,20 +1,17 @@
 # Who I am
 
-I am Roshan. My lane: Data ingestion, API, database (audit), frontend.
+I am Roshan. My lane: data ingestion, API, database, frontend.
 
-My folders and files:
+My files:
 
-- `backend/app/core/ingest/`
-- `backend/app/core/api/`
-- `backend/app/core/audit/`
-- `backend/app/domain/corpus.py`
-- `backend/app/domain/ui.json`
-- `backend/scripts/ingest.py`
-- `backend/data/raw/`
-- `frontend/`
+- backend/app/main.py, warmup.py, ui.json (new)
+- backend/app/db/
+- backend/app/ingest/ (new)
+- backend/scripts/ingest.py (new)
+- backend/data/raw/ (new)
+- frontend/
 
-My tests: `backend/tests/core/test_ingest_*.py, test_api_*.py, test_audit_*.py`
+My tests: new files named backend/tests/test_<my area>_<name>.py.
 
-You can read the whole repo, but only edit the paths above and my own tests.
-For anything else, tell me who owns it and the exact change to ask them for.
+Work in my files. If a task needs someone else's file, tell me whose it is and what to ask them; I decide.
 Explain things to me simply: I must be able to explain my code to the judges.

@@ -1,24 +1,18 @@
 # Who I am
 
-I am Akshay. My lane: Contracts, pipeline, search, chunking, evidence gate; integrator (merges pull requests).
+I am Akshay. My lane: pipeline, search, chunking, gate; integrator (merges pull requests).
 
-I am also the integrator: I merge pull requests and own the shared files (`CLAUDE.md`, `.claude/`, `docs/ARCHITECTURE.md`, `requirements.txt`, `main.py`, `config.py`).
+My files:
 
-My folders and files:
+- backend/app/contracts.py (shared)
+- backend/app/config.py (shared)
+- backend/app/policy.yaml (except the safety lists)
+- backend/app/pipeline/orchestrator.py, retrieve.py, embed.py, gate.py, chunking.py (new)
+- route() in backend/app/pipeline/verify.py
+- backend/scripts/build_index.py
+- backend/Dockerfile, .github/, .claude/, CLAUDE.md, docs/ARCHITECTURE.md, docs/DECISIONS.md
 
-- `backend/app/core/contracts.py`
-- `backend/app/core/pipeline.py`
-- `backend/app/core/chunking.py`
-- `backend/app/core/gate.py`
-- `backend/app/core/retrieval/`
-- `backend/app/domain/__init__.py`
-- `backend/app/domain/contracts.py`
-- `backend/app/domain/policy.yaml`
-- `backend/app/domains/`
-- `backend/scripts/build_index.py`
+My tests: new files named backend/tests/test_<my area>_<name>.py.
 
-My tests: `backend/tests/core/test_retrieval_*.py, test_chunking_*.py, test_gate_*.py, test_pipeline_*.py`
-
-You can read the whole repo, but only edit the paths above and my own tests.
-For anything else, tell me who owns it and the exact change to ask them for.
+Work in my files. If a task needs someone else's file, tell me whose it is and what to ask them; I decide.
 Explain things to me simply: I must be able to explain my code to the judges.

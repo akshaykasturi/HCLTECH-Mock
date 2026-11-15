@@ -12,12 +12,10 @@
 
 ## Checklist
 
-- [ ] Every changed file is in my folders (or my own test files)
-- [ ] `python -m pytest -q` passes locally
-- [ ] Any xfail I implemented now passes with the marker removed
+- [ ] Tests pass locally (`python -m pytest -q` in backend; `npm run lint` and `npm run build` if the frontend changed)
+- [ ] Files I don't own are listed below, and their owner knows
 - [ ] No `.env`, `.db`, keys, `node_modules`, `.venv` in the changes
-- [ ] No signature from docs/ARCHITECTURE.md changed
 
 ## Needs from others
 
-<!-- contract change, new dependency, policy.yaml value, shared file: write the exact change and who owns it -->
+<!-- shared-file change, new dependency, policy.yaml value: the exact change and who owns it -->

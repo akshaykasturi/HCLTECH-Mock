@@ -1,186 +1,134 @@
 # Architecture
 
-The single source of truth for what we build. If code and this file disagree, this file wins until Akshay changes it in a pull request.
+What the app is, where each part lives and who owns it. The code is the working IT ticket assistant; we keep its layout.
+If code and this file disagree, tell Akshay so one of them gets fixed.
 
-## 1. The pipeline
+## 1. The pipeline: `backend/app/pipeline/orchestrator.py`, `analyse(ticket, llm) -> AnalysisResult`
 
 ```
-input -> guard_in -> classify -> retrieve -> gate -> generate -> guard_out -> route -> audit
-                                                                                  |
-                                              review by a human  <----------------+
-                                              evaluate offline (scripts/evaluate.py)
+ticket -> 1 redact -> 2 classify -> 3 retrieve -> 4 gate -> 5 generate -> 6 verify + route -> saved + shown
+                                                     |
+                                                     +-> stops here (ESCALATE or CLARIFY) with no LLM call
 ```
 
-| Step | What it does | Owner | Lives in |
+| Step | What it does | File | Owner |
 |---|---|---|---|
-| guard_in | Hide personal data and secrets; flag prompt attacks, hazards, vague input | Atheesha | `core/guardrails/` |
-| classify | Category, calibrated probability, conformal set | Raswanth | `core/ml/`, `domain/steps.py` |
-| retrieve | Hybrid search (keyword BM25 + embeddings, fused with RRF) over approved chunks | Akshay | `core/retrieval/` |
-| gate | Weak evidence stops the run before any LLM call | Akshay | `core/gate.py` |
-| generate | The LLM writes strict JSON from the evidence only | Atheesha | `core/llm/`, `domain/prompts.py` |
-| guard_out | Check citations, numbers, certainty words, IDs, personal data in the output | Atheesha | `core/guardrails/`, `domain/checks.py` |
-| route | Final outcome; confidence = min(signals) | Akshay | `core/pipeline.py` |
-| audit | Save the run in a hash-chained table | Roshan | `core/audit/` |
-| api + screen | Endpoints; screen built from `ui.json` | Roshan | `core/api/`, `frontend/` |
-| evaluate | ML, search and answer metrics with confidence intervals and baselines | Akhilesh, with metric functions from each owner | `core/analysis/`, `scripts/evaluate.py` |
+| 1 redact | Masks emails, phone numbers, IPs and secrets before anything else sees the text | `pipeline/redact.py` | Atheesha |
+| 2 classify | Category, subcategory, priority, calibrated confidence | `pipeline/classify.py` | Raswanth |
+| 3 retrieve | Hybrid search: BM25 keywords + embeddings, fused with RRF. Strength = cosine similarity of the best match | `pipeline/retrieve.py`, `pipeline/embed.py` | Akshay |
+| 4 gate | Safety keywords and prompt attacks (ESCALATE), vague text (CLARIFY), weak evidence (ESCALATE), before any LLM call | `pipeline/gate.py` | Akshay (the safety and injection lists in `policy.yaml`: Atheesha) |
+| 5 generate | The LLM writes JSON steps with citations from the retrieved matches; extractive fallback with no LLM | `pipeline/generate.py`, `llm/` | Atheesha |
+| 6 verify + route | Drops citations not found word for word; picks the outcome; confidence = min(signals) | `pipeline/verify.py` | Atheesha (verify), Akshay (route rules) |
+| save + API | Analyses and feedback saved; HTTP endpoints | `main.py`, `db/` | Roshan |
+| screen | React app | `frontend/` | Roshan |
+| evaluate | Classification, search and routing metrics on the test sets | `scripts/evaluate.py` | Akhilesh |
 
-Outcomes: `RECOMMEND` (answer shown), `CLARIFY` (ask the user a question), `ESCALATE` (send to a human), `BLOCKED` (policy forbids it).
+Outcomes: `RECOMMEND` (fix shown), `CLARIFY` (ask for more detail), `ESCALATE` (hand to a person).
+Signals (0 to 1): `classifier`, `retrieval`, `grounding`. Confidence = the smallest.
+Rule: deterministic code decides; the LLM only writes words; code checks every LLM output.
 
-Signals (each 0 to 1): `classifier_prob` (Raswanth), `evidence_strength` (Akshay), `groundedness` (Atheesha). A conformal set with more than one category means CLARIFY. Confidence = the smallest signal.
+## 2. Shared data shapes: `backend/app/contracts.py` (owner Akshay)
 
-## 2. Contracts: `backend/app/core/contracts.py` (owner Akshay)
+Existing models (read the file for fields): `TicketIn`, `SearchFilters`, `SearchRequest`, `Classification`, `Match`, `Citation`, `Recommendation`, `AuditEvent`, `AnalysisResult`, `FeedbackIn`, `FeedbackOut`, `AnalysisSummary`, `AnalysisRecord`, `Stats`, `ErrorInfo`, `Envelope`.
+The frontend and the database depend on them, so ask Akshay before changing one.
 
-Everyone imports these. Nobody redefines them.
+To be added by Akshay (task A1 in `team/TASKS.md`), so new modules share them:
 
 ```python
-class Document(BaseModel):      # one loaded file or record, before chunking
+class Document(BaseModel):     # one loaded file or record, before chunking
     id: str
     title: str
     text: str
-    source: str                 # file path or URL
-    metadata: dict = {}         # format, sha256, loaded_at, licence, version, date, access
+    source: str                # file path or URL
+    metadata: dict[str, Any] = {}   # format, sha256, loaded_at, licence, url, version
 
-class Evidence(BaseModel):      # anything we can cite: a chunk, a past record, a log line
-    id: str                     # chunk id: f"{document_id}#{n}"
-    source_type: str            # "doc", "ticket", "log", ...
-    title: str
-    text: str
-    score: float = 0.0          # evidence strength 0..1, set by search()
-    metadata: dict = {}         # heading path, page, section, url, licence, status
-
-class Citation(BaseModel):
-    evidence_id: str
-    excerpt: str                # must appear word for word in that evidence
-    reason: str
-    also_in: list[str] = []
-
-class Finding(BaseModel):
-    code: str                   # e.g. "NUMBER_NOT_IN_SOURCE"
+class Finding(BaseModel):      # the result of one safety or quality check
+    code: str                  # e.g. "NUMBER_NOT_IN_SOURCE"
     severity: Literal["info", "warn", "block"]
     message: str
 
-class Signal(BaseModel):
-    name: str
-    value: float                # 0..1
-
-class AuditEvent(BaseModel):
-    step: str
-    ms: float = 0.0
-    detail: dict = {}
-
-Outcome = Literal["RECOMMEND", "CLARIFY", "ESCALATE", "BLOCKED"]
-
-class RunContext(BaseModel):    # passed through every step; steps read and write it
-    run_id: str
-    domain: str
-    input: dict = {}
-    input_redacted: dict = {}
-    query: str = ""
-    category: str | None = None
-    category_probs: dict[str, float] = {}
-    category_set: list[str] = []
-    evidence: list[Evidence] = []
-    allowed_ids: list[str] = []
-    output: dict | None = None  # the domain OutputModel as a dict
-    findings: list[Finding] = []
-    signals: list[Signal] = []
-    reasons: list[str] = []
-    outcome: Outcome | None = None
-    generator: str | None = None  # "gemini", "groq", "ollama", "extractive"
-    stop: bool = False
-    trace: list[AuditEvent] = []
-
-class RunResult(BaseModel):
-    run_id: str
-    domain: str
-    input_redacted: dict
-    outcome: Outcome
-    reasons: list[str]
-    confidence: float
-    signals: list[Signal]
-    evidence: list[Evidence]
-    output: dict | None
-    findings: list[Finding]
-    generator: str | None
-    trace: list[AuditEvent]
-
-@dataclass
-class DomainPack:
-    name: str
-    input_model: type[BaseModel]
-    output_model: type[BaseModel]                         # the strict JSON the LLM must return
-    load_documents: Callable[[], list[Document]]
-    build_query: Callable[[BaseModel], str]
-    build_prompt: Callable[[RunContext], tuple[str, str]]  # (system, user)
-    steps: list[Callable[[RunContext], None]]
-    policy_path: Path
-    ui_path: Path
+# Match.source_type also gains "doc" (chunks of loaded documents)
 ```
 
-Every step has the shape `def step(ctx: RunContext) -> None`. It may set `ctx.stop`, `ctx.outcome` and `ctx.reasons`.
-Every check has the shape `def check(ctx: RunContext) -> list[Finding]`.
+## 3. File map
 
-## 3. Module map
+Paths are inside `backend/app/` unless they start with `backend/`, `frontend/`, `docs/` or `team/`.
 
-Signatures are fixed. "New" means a stub is created first and the owner implements it. "Port" means existing working code is moved here.
+### Existing files
 
-| File (under `backend/app/` or `backend/`) | Owner | Status | Signatures |
-|---|---|---|---|
-| `core/ingest/parsers.py` | Roshan | new | `parse_file(path: Path) -> list[Document]`; `load_folder(folder: Path) -> list[Document]` |
-| `core/ingest/dedupe.py` | Roshan | new | `dedupe(docs: list[Document]) -> tuple[list[Document], list[dict]]` (kept, removed-report) |
-| `core/chunking.py` | Akshay | new | `chunk(doc: Document, max_words: int = 220, overlap: int = 40) -> list[Evidence]` |
-| `core/retrieval/index.py` | Akshay | port | `build_index(evidence: list[Evidence]) -> None`; `search(query: str, k: int = 5, filters: dict \| None = None, mode: str = "hybrid") -> list[Evidence]` |
-| `core/retrieval/metrics.py` | Akshay | new | `recall_at_k(ranked: list[str], gold: set[str], k: int) -> float`; `mrr(ranked: list[str], gold: set[str]) -> float`; `ndcg_at_k(ranked: list[str], gold: set[str], k: int) -> float` |
-| `core/gate.py` | Akshay | port | `gate(ctx: RunContext) -> None` |
-| `core/pipeline.py` | Akshay | new | `run(domain: DomainPack, raw_input: dict) -> RunResult` |
-| `core/ml/classifier.py` | Raswanth | port | `train(texts: list[str], labels: list[str]) -> None`; `predict(text: str) -> tuple[str, float, dict[str, float]]` |
-| `core/ml/conformal.py` | Raswanth | new | `fit_qhat(cal_probs: np.ndarray, cal_labels: np.ndarray, alpha: float = 0.1) -> float`; `predict_set(probs: dict[str, float], qhat: float) -> list[str]` |
-| `core/ml/thresholds.py` | Raswanth | new | `cost_threshold(scores: np.ndarray, correct: np.ndarray, cost_wrong_pass: float, cost_needless_escalation: float) -> tuple[float, float]` (threshold, expected cost) |
-| `core/analysis/stats.py` | Akhilesh | new | `calibration(y_true: np.ndarray, p: np.ndarray, bins: int = 10) -> dict`; `bootstrap_ci(values: np.ndarray, n: int = 2000, alpha: float = 0.05, seed: int = 0) -> tuple[float, float, float]`; `mcnemar(a_correct: np.ndarray, b_correct: np.ndarray) -> dict`; `risk_coverage(confidence: np.ndarray, correct: np.ndarray) -> list[dict]` |
-| `core/analysis/baselines.py` | Akhilesh | new | `majority_baseline(train_labels: list[str], n: int) -> list[str]`; `keyword_baseline(texts: list[str], keywords: dict[str, list[str]]) -> list[str]` |
-| `core/llm/gateway.py` | Atheesha | new | `generate(schema: type[BaseModel], system: str, user: str, allowed_ids: list[str]) -> tuple[dict \| None, str, list[str]]` (output, provider, errors) |
-| `core/llm/providers/` | Atheesha | port | `gemini.py`, `openai_compat.py` (Groq or Ollama through `LLM_BASE_URL`), `fake.py` |
-| `core/llm/cache.py` | Atheesha | new | `get(key: str) -> dict \| None`; `put(key: str, value: dict) -> None` |
-| `core/guardrails/redact.py` | Atheesha | port | `redact(text: str) -> tuple[str, list[Finding]]` |
-| `core/guardrails/input_checks.py` | Atheesha | port | `check_injection(ctx) -> list[Finding]`; `check_hazard(ctx) -> list[Finding]`; `check_vague(ctx) -> list[Finding]` |
-| `core/guardrails/citations.py` | Atheesha | port | `check_citations(ctx) -> list[Finding]` (word-for-word excerpt, allowed IDs, merge duplicate quotes) |
-| `core/guardrails/numbers.py` | Atheesha | new | `check_numbers(ctx) -> list[Finding]` |
-| `core/guardrails/certainty.py` | Atheesha | new | `check_certainty(ctx) -> list[Finding]` |
-| `core/guardrails/pii_out.py` | Atheesha | new | `check_pii_out(ctx) -> list[Finding]` |
-| `core/evals/rag.py` | Atheesha | new | `citation_precision(results: list[RunResult]) -> float`; `groundedness(results: list[RunResult]) -> float`; `number_faithfulness(results: list[RunResult]) -> float`; `abstention(results: list[RunResult], expected: list[str]) -> dict` |
-| `core/audit/store.py` | Roshan | port | `save_run(result: RunResult) -> str`; `get_run(run_id: str) -> RunResult \| None`; `list_runs(limit: int = 50) -> list[dict]`; `verify_chain() -> dict`; `export_csv() -> str` |
-| `core/api/routes.py` | Roshan | port | FastAPI router with the endpoints in section 4 |
-| `scripts/ingest.py` | Roshan | new | `python -m scripts.ingest <folder>` writes `data/processed/documents.jsonl` |
-| `scripts/tune_gate.py` | Raswanth | port | Prints the best gate threshold from the validation set; Akshay copies it into `policy.yaml` |
-| `scripts/redteam.py` | Atheesha | new | Runs `data/redteam/*.jsonl`, prints the pass rate per category |
-| `scripts/evaluate.py` | Akhilesh | new | Writes `data/eval_report.json` and `docs/eval_report.md` |
+| File | Owner | What it holds |
+|---|---|---|
+| `contracts.py` | Akshay (shared) | All shared models |
+| `config.py` | Akshay (shared) | `get_settings()`, `get_policy()`; settings from environment variables |
+| `policy.yaml` | Akshay; sections `safety_keywords` and `injection_patterns`: Atheesha | Every threshold and rule |
+| `pipeline/orchestrator.py` | Akshay | `analyse()`: runs the 6 steps, writes the trace |
+| `pipeline/retrieve.py` | Akshay | `Index.search(query, top_k, filters)`, `Index.rank(..., mode="bm25"/"dense"/"hybrid")`, `rrf()`, `tokenize()` |
+| `pipeline/embed.py` | Akshay | `FastEmbedder` (bge-small), `HashEmbedder` (tests), `get_embedder()` |
+| `pipeline/gate.py` | Akshay | `check(text, strength, policy)`, `stop_outcome()`, `safety_hit()`, `injection_hit()` |
+| `pipeline/classify.py` | Raswanth | TF-IDF + calibrated logistic regression; `classify(text)`, `load_or_train()`, `knn_vote()` baseline |
+| `pipeline/redact.py` | Atheesha | `redact(text) -> (text, counts)` |
+| `pipeline/generate.py` | Atheesha | `SYSTEM` prompt, `SCHEMA`, `generate(text, matches, llm)`, `extractive()` |
+| `pipeline/verify.py` | Atheesha (`verify_citations`); Akshay (`route`) | Citation check; outcome rules |
+| `llm/` (`base.py`, `fake.py`, `gemini.py`, `groq.py`, `router.py`) | Atheesha | Providers, `ChainLLM` with circuit breaker, `run_llm()`, `build_llm()` |
+| `main.py` | Roshan | FastAPI app and all endpoints |
+| `db/` (`models.py`, `repository.py`, `session.py`) | Roshan | Analyses and feedback tables; SQLite locally, Postgres in production; database-down handling |
+| `warmup.py` | Roshan | Builds the index and classifier at startup |
+| `backend/scripts/build_index.py` | Akshay | Pre-builds search vectors and the classifier |
+| `backend/scripts/tune_gate.py` | Raswanth | Picks the gate threshold on the validation set |
+| `backend/scripts/generate_data.py`, `scenarios.py` | Raswanth | Synthetic training data and scenarios |
+| `backend/scripts/evaluate.py` | Akhilesh | Writes `docs/eval_report.md` |
+| `backend/scripts/check_llm.py` | Atheesha | Checks each LLM provider responds |
+| `backend/data/historical_tickets.csv`, `kb_articles.json`, `DATA_CARD.md` | Raswanth | Training and search data |
+| `backend/data/test/`, `backend/data/validation/` | Akhilesh | Test sets (never tuned on) and the validation set (tuning only) |
+| `backend/Dockerfile`, `.github/workflows/ci.yml` | Akshay | Deploy and CI |
+| `frontend/` | Roshan | React + Vite + Tailwind; API calls in `src/lib/api.js`; labels in `src/lib/words.js` |
+
+### New files (agreed paths; create them here)
+
+| File | Owner | Functions |
+|---|---|---|
+| `pipeline/chunking.py` | Akshay | `chunk(doc: Document, max_words: int = 220, overlap: int = 40) -> list[Match]` |
+| `ingest/parsers.py` | Roshan | `parse_file(path: Path) -> list[Document]`; `load_folder(folder: Path) -> list[Document]` |
+| `ingest/dedupe.py` | Roshan | `dedupe(docs: list[Document]) -> tuple[list[Document], list[dict]]` |
+| `backend/scripts/ingest.py` | Roshan | Loads a folder, writes `backend/data/processed/documents.jsonl` |
+| `ml/conformal.py` | Raswanth | `fit_qhat(cal_probs, cal_labels, alpha=0.1) -> float`; `predict_set(probs: dict[str, float], qhat: float) -> list[str]` |
+| `ml/thresholds.py` | Raswanth | `cost_threshold(scores, correct, cost_wrong_pass, cost_needless_escalation) -> tuple[float, float]` |
+| `analysis/stats.py` | Akhilesh | `brier()`, `bootstrap_ci(values, n=2000, alpha=0.05, seed=0) -> (point, low, high)`, `mcnemar(a_correct, b_correct) -> dict`, `risk_coverage(confidence, correct) -> list[dict]` |
+| `analysis/baselines.py` | Akhilesh | `majority_baseline()`, `keyword_baseline()` |
+| `pipeline/checks.py` | Atheesha | `check_numbers(rec, matches)`, `check_certainty(rec, matches)`, `check_pii_out(rec)`, each `-> list[Finding]` |
+| `llm/openai_compat.py` | Atheesha | One provider for any OpenAI-style API (Groq, or Ollama through `LLM_BASE_URL`) |
+| `llm/cache.py` | Atheesha | `get(key) -> dict | None`, `put(key, value) -> None` |
+| `evals/answers.py` | Atheesha | `citation_precision()`, `groundedness()`, `number_faithfulness()`, `abstention()` |
+| `backend/scripts/redteam.py`, `backend/data/redteam/` | Atheesha | Attack cases and pass rate per category |
+| `ui.json` | Roshan | Labels, form fields and outcome texts for `GET /api/meta` |
+
+New folders (`ingest/`, `ml/`, `analysis/`, `evals/`) need an empty `__init__.py`.
 
 ## 4. API (owner Roshan)
 
 Every response: `{"ok": bool, "request_id": str, "data": ..., "error": {"code": str, "message": str} | null}`.
 
-`GET /health` · `GET /api/meta` (domain name + `ui.json`) · `POST /api/run` · `GET /api/runs` · `GET /api/runs/{id}` · `POST /api/runs/{id}/feedback` · `POST /api/runs/{id}/review` · `GET /api/stats` · `GET /api/export.csv` (personal data masked) · `GET /api/audit/verify` · `POST /api/search` · `POST /api/ingest` (file upload)
+Existing: `GET /health` · `POST /api/analyze` · `GET /api/analyses` · `GET /api/analyses/{id}` · `POST /api/analyses/{id}/feedback` · `GET /api/stats` · `POST /api/search`
+Planned: `GET /api/meta` · `GET /api/export.csv` (personal data masked) · `GET /api/audit/verify` · `POST /api/ingest`
 
-Paths and response shapes are fixed: the frontend depends on them.
+The frontend depends on paths and response shapes: change them only together with the frontend.
 
-## 5. Domain pack: `backend/app/domain/` (written for each problem statement)
+## 5. What changes for a new problem statement
 
-| File | Owner | What goes in it |
+| What | Where | Owner |
 |---|---|---|
-| `__init__.py` | Akshay | `DOMAIN = DomainPack(...)`, the only thing core imports |
-| `contracts.py` | Akshay | `InputModel`, `OutputModel` (the LLM's JSON), the category list |
-| `corpus.py` | Roshan | `load_documents() -> list[Document]` |
-| `steps.py` | Raswanth | Domain steps, such as classify wiring and domain rules |
-| `prompts.py` | Atheesha | `build_prompt(ctx) -> (system, user)` |
-| `checks.py` | Atheesha | Domain output checks returning `list[Finding]` |
-| `policy.yaml` | Akshay (others propose values in their pull request text) | Thresholds, keywords, costs |
-| `ui.json` | Roshan | Form fields, labels, outcome texts, example inputs |
-
-Reference pack: `backend/app/domains/tickets/` (IT tickets, working). Copy it, then adapt.
+| Input and output models | `contracts.py` (`TicketIn`, `Classification`, `Recommendation`) | Akshay |
+| Categories and training data | `backend/data/`, `scripts/generate_data.py`, `classify.py` | Raswanth |
+| Documents to search | Files into `backend/data/raw/` → ingest → chunking → index | Roshan, then Akshay |
+| Prompt and output schema | `pipeline/generate.py` (`SYSTEM`, `SCHEMA`) | Atheesha |
+| Rules and thresholds | `policy.yaml` | Akshay (safety lists: Atheesha) |
+| Screen labels and form | `frontend/src/components/TicketForm.jsx`, `src/lib/words.js` (later `ui.json`) | Roshan |
+| Test and validation sets; report | `backend/data/test/`, `backend/data/validation/`, `scripts/evaluate.py` | Akhilesh |
+| Attack cases | `backend/data/redteam/` | Atheesha |
 
 ## 6. Data and evaluation rules
 
-- Splits: train, validation (tuning only), test (never used for a decision). Each split's source and size go in `data/eval/README.md`.
+- Splits: training data, validation (tuning only), test (never used to choose anything).
 - Live-LLM runs and extractive (no-LLM) runs are reported separately.
-- Every number in the README, pitch or demo comes from `data/eval_report.json`. Never type a number by hand.
-- Every metric shows its value, 95% confidence interval, sample size and the baseline next to it.
+- Numbers in the README, pitch or demo come from `docs/eval_report.md`, never typed by hand.
+- Each metric shows its value, sample size and the baseline next to it, with a 95% confidence interval where `analysis/stats.py` provides one.
