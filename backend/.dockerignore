@@ -1,0 +1,19 @@
+# Local environment and caches: never in the image
+.venv
+.cache
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+
+# Tests are run in CI, not in the image
+tests
+
+# Local databases and secrets
+*.db
+.env
+.env.*
+!.env.example
+
+# Vectors are rebuilt inside the image by scripts/build_index.py
+data/index

@@ -1,0 +1,36 @@
+val_id,description,scenario_id,expected
+VAL001,"Back from holiday and Windows says my password has expired, but it won't take any new password I try.",acc_pwd_expired,in_scope
+VAL002,"My login keeps getting locked every few minutes, IT unlocked it this morning and it's locked again already.",acc_locked_out,in_scope
+VAL003,I switched to a new phone over the weekend and now the sign-in approvals still go to my old one which I've wiped.,acc_mfa_new_phone,in_scope
+VAL004,I moved to the finance team last week and I get access denied on their shared drive. My manager approved it.,acc_shared_folder,in_scope
+VAL005,"Working from home today and the VPN refuses to connect, it complains about my certificate.",net_vpn_cert,in_scope
+VAL006,"VPN connects but everything crawls, file copies take forever and my calls keep dropping while I'm on it.",net_vpn_slow,in_scope
+VAL007,"My laptop was reimaged yesterday and now it won't join the office wireless, guest wifi works though.",net_wifi_auth,in_scope
+VAL008,"The company intranet page won't open, says it can't find the server, but Google loads fine.",net_dns_intranet,in_scope
+VAL009,"Outlook has been stuck saying updating inbox all morning, but I can see the new emails in the web version.",eml_outlook_profile,in_scope
+VAL010,People tell me their emails to me bounce because my mailbox is full. I already emptied the deleted folder.,eml_quota,in_scope
+VAL011,When I share my screen in a Teams meeting everyone just sees black. Only happens on my second monitor.,eml_teams_screen,in_scope
+VAL012,Running the month end report in SAP crashes with a runtime error after a few minutes. Finance is waiting on it.,app_sap_dump,in_scope
+VAL013,"New contacts I add in Salesforce don't show up in Outlook anymore, it stopped after I changed my password.",app_crm_sync,in_scope
+VAL014,"Nobody in our office can open the HR portal, it just shows an internal server error. Payroll is due today.",app_portal_500,in_scope
+VAL015,After this morning's update my laptop shows a blue screen asking for a BitLocker recovery key.,hw_laptop_boot,in_scope
+VAL016,The big printer by the pantry keeps saying paper jam even though I opened it and there's nothing in there.,hw_printer_jam,in_scope
+VAL017,My second screen shows no signal when I plug into the docking station. The monitor works with other laptops.,hw_monitor,in_scope
+VAL018,Adobe Acrobat now says my licence has expired and wants me to buy a subscription. I need to edit a contract today.,sw_license_expired,in_scope
+VAL019,Windows updates have been failing all week and I got an email saying my laptop is out of compliance.,sw_update_fail,in_scope
+VAL020,Got an email that looks like it's from IT asking me to confirm my password through a link. I didn't click it.,sec_phishing,in_scope
+OOD001,The coffee machine on the 4th floor is leaking water all over the counter.,,out_of_scope
+OOD002,Can someone book a meeting room for 12 people next Tuesday afternoon?,,out_of_scope
+OOD003,My payslip shows the wrong number of leave days this month.,,out_of_scope
+OOD004,The lift on the east side has been stuck on floor 2 since this morning.,,out_of_scope
+OOD005,"I need a new office chair, mine is broken and hurting my back.",,out_of_scope
+OOD006,Who do I talk to about changing my bank details for salary?,,out_of_scope
+OOD007,"The fire alarm test is too loud in our area, can it be scheduled differently?",,out_of_scope
+OOD008,Our team needs a quote for 50 branded t-shirts for the offsite.,,out_of_scope
+OOD009,The cafeteria card reader charged me twice for lunch.,,out_of_scope
+OOD010,I'd like to request a standing desk for health reasons.,,out_of_scope
+OOD011,Please update my surname in the staff directory after my wedding.,,out_of_scope
+OOD012,The windows in the conference room don't close properly and it's cold.,,out_of_scope
+OOD013,Where can I find the travel reimbursement policy for international trips?,,out_of_scope
+OOD014,The office plants on our floor haven't been watered in weeks.,,out_of_scope
+OOD015,Can facilities fix the flickering ceiling light above my desk?,,out_of_scope

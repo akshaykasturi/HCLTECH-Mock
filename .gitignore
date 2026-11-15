@@ -226,3 +226,18 @@ __marimo__/
 # Generated
 backend/models/
 backend/data/processed/
+
+# Frontend and local data
+node_modules/
+.vite/
+*.db
+
+# From ticket-assistant
+# The Python template above ignores every lib/ folder; keep the frontend's lib/
+!frontend/src/lib/
+# Generated search indexes and downloaded embedding models
+backend/data/index/
+backend/.cache/
+# Environment files: ignore all, keep the examples
+.env.*
+!.env.example
