@@ -39,6 +39,8 @@
       "PowerShell(git push*--force*)",
       "PowerShell(git push* -f*)",
       "PowerShell(git reset --hard*)",
+      "Bash(git push* +*)",
+      "PowerShell(git push* +*)",
       "Read(**/.env)"
     ]
   }
