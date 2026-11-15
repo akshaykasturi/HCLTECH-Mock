@@ -1,8 +1,8 @@
 # Who I am
 
-I am Akshay. My lane: pipeline, search, chunking, gate; integrator (merges pull requests).
+I am Akshay. My lane: pipeline, search, chunking, gate.
 
-My files:
+My main area (I can still work anywhere):
 
 - backend/app/contracts.py (shared)
 - backend/app/config.py (shared)
@@ -14,5 +14,4 @@ My files:
 
 My tests: new files named backend/tests/test_<my area>_<name>.py.
 
-Work in my files. If a task needs someone else's file, tell me whose it is and what to ask them; I decide.
 Explain things to me simply: I must be able to explain my code to the judges.

@@ -11,7 +11,7 @@ paths:
   - "backend/data/redteam/**"
 ---
 
-# Lane: LLM, safety checks, answer quality (owner Atheesha)
+# Lane: LLM, safety checks, answer quality
 
 - Every LLM call goes through `llm/router.py` (`run_llm`). Order: Gemini, then Groq (or Ollama through an OpenAI-compatible base URL), then extractive mode (no LLM; quotes the best matches).
 - Timeout per call from `LLM_TIMEOUT_S`; a failing provider is skipped for `LLM_COOLDOWN_S` seconds (circuit breaker).

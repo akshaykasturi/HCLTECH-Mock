@@ -10,7 +10,7 @@ paths:
   - "frontend/**"
 ---
 
-# Lane: data ingestion, API, database, frontend (owner Roshan)
+# Lane: data ingestion, API, database, frontend
 
 Ingestion
 - `parse_file` handles .csv, .json, .jsonl, .pdf (pypdf), .md, .html (beautifulsoup4), .txt. An unknown type raises a clear error.

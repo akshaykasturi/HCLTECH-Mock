@@ -1,6 +1,6 @@
 # Decisions
 
-One line per decision: what we chose, why, and what we rejected. Newest last. Owner: Akshay (others add through their pull request text).
+One line per decision: what we chose, why, and what we rejected. Newest last. Anyone can add one in their pull request.
 
 | # | Decision | Why | Rejected |
 |---|---|---|---|
@@ -11,4 +11,4 @@ One line per decision: what we chose, why, and what we rejected. Newest last. Ow
 | D5 | Calibrated logistic regression for classification | Honest probabilities, fast, explainable | kNN (overconfident), LLM classification |
 | D6 | LLM chain: Gemini, then Groq, then extractive | The app never dies when a provider fails | One provider |
 | D7 | Confidence = min(signals) | The weakest link decides | Averaging signals |
-| D8 | Team rules are guidance, not locks; only force-push, reset --hard and reading .env are blocked | Nobody gets stuck pushing their own work | Per-person edit blocks |
+| D8 | Rules are guidance; anyone can edit, push and merge; only force-push and reading .env are blocked | Nobody gets stuck waiting for someone else | Per-person edit, push or merge blocks |
