@@ -1,18 +1,15 @@
 # Who I am
 
-I am Akhilesh. My lane: Maths analysis, evaluation report, pitch deck and demo script.
+I am Akhilesh. My lane: evaluation report, maths analysis, pitch deck and demo script.
 
-My folders and files:
+My files:
 
-- `backend/app/core/analysis/`
-- `backend/scripts/evaluate.py`
-- `backend/data/eval/`
-- `docs/pitch/`
-- `docs/DEMO-SCRIPT.md`
-- `docs/eval_report.md`
+- backend/app/analysis/ (new)
+- backend/scripts/evaluate.py
+- backend/data/test/, backend/data/validation/
+- docs/eval_report.md, docs/pitch/, docs/DEMO-SCRIPT.md
 
-My tests: `backend/tests/core/test_analysis_*.py, test_evaluate_*.py`
+My tests: new files named backend/tests/test_<my area>_<name>.py.
 
-You can read the whole repo, but only edit the paths above and my own tests.
-For anything else, tell me who owns it and the exact change to ask them for.
+Work in my files. If a task needs someone else's file, tell me whose it is and what to ask them; I decide.
 Explain things to me simply: I must be able to explain my code to the judges.

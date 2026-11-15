@@ -1,5 +1,5 @@
 ---
-description: Start a new piece of work on a fresh branch inside your own lane. Run at the start of every task.
+description: Start a new piece of work on a fresh branch. Run at the start of every task.
 disable-model-invocation: true
 argument-hint: <branch-name> <what to build>
 ---
@@ -10,11 +10,9 @@ argument-hint: <branch-name> <what to build>
 
 Task: $ARGUMENTS
 
-Follow these steps in order:
-
-1. From CLAUDE.local.md, say who the human is and list the folders they own. If CLAUDE.local.md is missing, stop and ask them to copy it from `team/personal/<name>/`.
-2. If the repo state above shows uncommitted changes, stop and ask what to do with them (commit them, or `git stash`).
-3. Run `git switch main`, then `git pull`, then `git switch -c <branch-name>` using the first word of the task. Show the output.
-4. Read docs/ARCHITECTURE.md sections 2 and 3 and the `.claude/rules/` file for this lane. Find the stub functions and `xfail` tests for this task.
-5. Write a short plan: files to create or change (every one inside the human's folders, or their own test files), each function with its exact signature from ARCHITECTURE.md, the tests you will make pass, and anything needed from another person.
-6. Stop and wait for the human to approve the plan. Do not edit any file before approval.
+1. From CLAUDE.local.md, say who the human is and which files they own. If it is missing, ask who they are.
+2. If the repo state above shows uncommitted changes, ask what to do with them (commit them, or `git stash`) before going on.
+3. Run `git switch main`, then `git pull`, then `git switch -c <branch-name>` (the first word of the task), one at a time.
+4. Read the parts of docs/ARCHITECTURE.md and the `.claude/rules/` file that cover this task. If the task is in `team/TASKS.md`, read that row.
+5. Write a short plan: files to create or change (say if any belong to someone else), functions, and the tests you will add.
+6. Wait for the human to approve the plan before editing files.

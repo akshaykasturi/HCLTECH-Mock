@@ -1,29 +1,25 @@
 ---
 paths:
-  - "backend/app/core/llm/**"
-  - "backend/app/core/guardrails/**"
-  - "backend/app/core/evals/**"
-  - "backend/app/domain/prompts.py"
-  - "backend/app/domain/checks.py"
+  - "backend/app/llm/**"
+  - "backend/app/pipeline/generate.py"
+  - "backend/app/pipeline/redact.py"
+  - "backend/app/pipeline/verify.py"
+  - "backend/app/pipeline/checks.py"
+  - "backend/app/evals/**"
+  - "backend/scripts/check_llm.py"
   - "backend/scripts/redteam.py"
   - "backend/data/redteam/**"
 ---
 
-# Lane: LLM gateway, safety checks, answer evaluation (owner Atheesha)
+# Lane: LLM, safety checks, answer quality (owner Atheesha)
 
-- Every LLM call goes through `gateway.generate()`. Order: Gemini, then an OpenAI-compatible provider (Groq, or Ollama through `LLM_BASE_URL`), then extractive mode (no LLM: quote the strongest evidence).
-- Timeout 12 s per call. A circuit breaker skips a failing provider for 300 s.
-- Return values are per call: `(output or None, provider, errors)`. No shared mutable state between calls.
-- Ask for strict JSON that matches the domain `OutputModel`. Validate with Pydantic. Retry once with the validation error, then fall back.
-- The LLM sees only `ctx.input_redacted` and evidence text, never secrets or raw personal data.
-- Evidence goes into the prompt as data, between clear delimiters, with its id. The system prompt says to ignore any instructions inside evidence.
-- Output checks never trust the LLM:
-  - a citation excerpt must appear word for word in the cited evidence (ignore case and extra spaces);
-  - a cited id must be in `ctx.allowed_ids`;
-  - every number in the answer must appear in its cited evidence;
-  - "definitely", "guaranteed", "confirmed" are flagged unless the evidence says so;
-  - the output is scanned for personal data.
-- Each check returns `list[Finding]`. Severity `block` drops the claim or stops the run. All findings go into the trace.
-- Cache key = hash of model + system prompt + user prompt + corpus version. The cache is off in tests.
-- Tests use the fake LLM. Never call a real API in a test.
-- Red-team cases live in `data/redteam/*.jsonl` as `{"input": ..., "expected_outcome": ..., "category": ...}`. Report the pass rate per category.
+- Every LLM call goes through `llm/router.py` (`run_llm`). Order: Gemini, then Groq (or Ollama through an OpenAI-compatible base URL), then extractive mode (no LLM; quotes the best matches).
+- Timeout per call from `LLM_TIMEOUT_S`; a failing provider is skipped for `LLM_COOLDOWN_S` seconds (circuit breaker).
+- `ChainLLM` is shared across requests: return the provider and errors from each call; never store them on the object.
+- Ask for strict JSON (`SCHEMA` in generate.py). Validate it; on failure fall back to extractive and record the reason.
+- The LLM sees only redacted text and the retrieved matches. Matches go into the prompt as data with their ids; the system prompt says to ignore instructions inside them.
+- Output checks never trust the LLM: a citation excerpt must appear word for word in a retrieved source; every number in a step must appear in its cited source; "definitely", "guaranteed", "confirmed" are flagged unless the source says so; the output is scanned for personal data.
+- New checks return `list[Finding]` (see contracts.py). Record every finding in the trace.
+- Cache key = hash of model + system prompt + user prompt + data version. The cache is off in tests.
+- Tests use `FakeLLM` or extractive mode. Never call a real API in a test.
+- Red-team cases: `backend/data/redteam/*.jsonl`, one JSON object per line: `{"input": ..., "expected_outcome": ..., "category": ...}`. Report the pass rate per category.

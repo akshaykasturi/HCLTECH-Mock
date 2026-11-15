@@ -1,76 +1,73 @@
 # Team rules for every Claude Code session in this repo
 
 Five people build one app, each with their own Claude Code. These rules keep all of us building the same thing the same way.
-The full design is imported below from docs/ARCHITECTURE.md. Read it before writing code.
+They are guidance, not locks: follow them, and when a task needs something they don't cover, ask the human.
+The design and the file map are imported below from docs/ARCHITECTURE.md. Read them before writing code.
 
 @docs/ARCHITECTURE.md
 
 ## Who you are working for
 
-`CLAUDE.local.md` (in the repo root, not committed) says which person you are helping and which folders they own.
-If it is missing, stop and ask the human to copy theirs from `team/personal/<name>/`.
+`CLAUDE.local.md` (repo root, not committed) says which person you are helping and which files they own.
+If it is missing, ask the human who they are, and suggest copying theirs from `team/personal/<name>/`.
 
 ## The one design rule
 
 Deterministic code decides. The LLM only writes words. Code checks every LLM output before anyone sees it.
 Never fake AI results with hardcoded outputs.
 
-## Folders: edit only your human's folders
+## Ownership
 
-| Person | Lane | Folders |
-|---|---|---|
-| Akshay | Contracts, pipeline, search, chunking, gate; integrator | `core/contracts.py`, `core/pipeline.py`, `core/chunking.py`, `core/gate.py`, `core/retrieval/`, `domain/__init__.py`, `domain/contracts.py`, `domain/policy.yaml`, `domains/` |
-| Atheesha | LLM gateway, safety checks, answer evaluation | `core/llm/`, `core/guardrails/`, `core/evals/`, `domain/prompts.py`, `domain/checks.py`, `scripts/redteam.py`, `data/redteam/` |
-| Raswanth | ML classification | `core/ml/`, `domain/steps.py`, `scripts/tune_gate.py`, `scripts/train.py` |
-| Akhilesh | Maths analysis, evaluation report, pitch | `core/analysis/`, `scripts/evaluate.py`, `data/eval/`, `docs/pitch/`, `docs/DEMO-SCRIPT.md` |
-| Roshan | Data ingestion, API, database, frontend | `core/ingest/`, `core/api/`, `core/audit/`, `domain/corpus.py`, `domain/ui.json`, `scripts/ingest.py`, `data/raw/`, `frontend/` |
-
-Paths under `core/`, `domain/`, `domains/` are inside `backend/app/`. Paths under `scripts/` and `data/` are inside `backend/`.
-
-Shared files, changed only by Akshay: `backend/app/core/contracts.py`, `backend/requirements.txt`, `backend/app/main.py`, `backend/app/config.py`, `.github/`, `.claude/`, `CLAUDE.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`.
-
-If a task needs a change outside your human's folders: stop, say exactly what change is needed and who owns it. Do not make it.
+Each file has an owner (docs/ARCHITECTURE.md section 3). Work in your human's files.
+If a task needs a change in someone else's file, say what change is needed and who owns it, and let the human decide.
+Shared files (`backend/app/contracts.py`, `backend/requirements.txt`, `backend/app/config.py`, `.github/`, `.claude/`, `CLAUDE.md`, `docs/ARCHITECTURE.md`) go through Akshay.
 
 ## Before writing code
 
-1. The human starts each task with `/start-task <branch> <what>`. Follow it.
-2. For anything touching more than one file, write a plan first: files, functions with exact signatures, tests. Wait for approval.
-3. Stub functions (`raise NotImplementedError`) and tests marked `xfail` are the specification. Implement the stub, remove the `xfail` marker, make the test pass.
+1. The human starts a task with `/start-task <branch> <what>`.
+2. For anything touching more than one file, write a short plan first (files, functions, tests) and wait for approval.
+3. If a command or script doesn't exist yet, say so. Never invent one.
 
 ## How code is written here
 
-- Python 3.11, FastAPI, Pydantic v2. Type hints on every function. A one-line docstring on every public function.
-- Shared data shapes come only from `app.core.contracts`. Never redefine `Document`, `Evidence`, `Citation`, `Finding`, `Signal`, `RunContext` or `RunResult`.
-- Never change a signature listed in docs/ARCHITECTURE.md. If one must change, stop and tell the human to ask Akshay.
-- Touch only the lines the task needs. Never reformat files, reorder imports or rename things you were not asked to change.
-- No new dependencies. If one is needed, stop and say which and why (requirements.txt is shared).
-- Prefer pure functions: input in, output out, no global state.
-- LLM calls only through `app.core.llm.gateway.generate`. Never import a provider SDK anywhere else.
-- Settings come from environment variables through `app.config`. Thresholds and keywords come from `domain/policy.yaml`. Never hardcode them.
+- Python 3.12, FastAPI, Pydantic v2. Type hints on every function. A one-line docstring on every public function.
+- Shared data shapes come from `app.contracts`. Don't redefine them in other files.
+- Touch only the lines the task needs. Don't reformat files, reorder imports or rename things you weren't asked to change.
+- No new dependency without asking (requirements.txt is shared).
+- Thresholds, keywords and rules live in `backend/app/policy.yaml`. Settings come from environment variables through `app.config`. Never hardcode them.
+- LLM calls go through `app.llm.router` (`run_llm`). Never call a provider SDK from anywhere else.
+- The LLM chain object is shared across requests: return per-request data from each call; never store it on the shared object.
 - Use `logging`, not `print`, in app code.
+
+## Running things (Windows PowerShell)
+
+- Use the venv's Python directly instead of activating it: `.\.venv\Scripts\python.exe` (from `backend`).
+- Backend: in `backend`, `.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload`, then open http://127.0.0.1:8000/docs
+- Frontend: in `frontend`, `npm run dev`, then open http://127.0.0.1:5173
+- Use `127.0.0.1`, not `localhost` (localhost can resolve to IPv6 and fail).
+- Scripts run from `backend`: `.\.venv\Scripts\python.exe scripts\evaluate.py` (and the same for the others).
 
 ## Tests
 
-- Tests live in `backend/tests/core/test_<area>_<name>.py` or `backend/tests/domain/`.
-- Tests never call the network, a real LLM or a real embedding model. Use the fake LLM and `HashEmbedder`.
-- Shared fixtures: `backend/tests/fixtures/` (`sample_documents.json`, `sample_evidence.json`).
-- Run them with the backend server stopped: `cd backend`, then `python -m pytest -q`.
+- Stop any running uvicorn first: its reload watcher makes pytest very slow.
+- In `backend`: `.\.venv\Scripts\python.exe -m pytest -q`. `tests/conftest.py` already forces offline mode (no LLM calls, hash embedder, temporary database).
+- Put new tests in a new file for your area: `backend/tests/test_<area>_<name>.py`.
+- Never delete, skip or weaken a test to make it pass. Report what passed and what failed before saying "done".
 
-## Git: the human runs git, you help
+## Git
 
-- You never run `git push`, `git reset --hard`, `git rebase`, `git commit --amend` or `git clean`. The settings block them.
-- Before a commit is suggested, run `/ready-pr`.
+- Run git steps one at a time; don't chain them with `;` when a step can fail.
+- Check `git status` before switching branches.
+- One task = one branch = one pull request. After a pull request is merged, start the next task from a fresh `main`.
 - Commit messages: `<lane>: <what>`, for example `ml: add conformal sets`. No quotes inside the message (PowerShell 5.1 breaks).
-- One task = one branch = one pull request. After a pull request is merged, start a new branch from a fresh main.
+- Before every commit run `/ready-pr`: it checks files, secrets and tests, and writes the pull request text.
+- Push only after the human says yes. Never force-push or `reset --hard` (the settings block these two).
+- `gh` isn't installed. Pull request link: https://github.com/akshaykasturi/HCLTECH-Mock/pull/new/<branch>
 
 ## Secrets
 
-- Never read, print or write `.env`. Never put a key in code, tests, logs or chat. `.env.example` holds variable names only.
-
-## Windows
-
-- The team uses Windows PowerShell. Give PowerShell commands. Activate the venv with `.venv\Scripts\Activate.ps1`.
-- Line endings are handled by `.gitattributes`. Do not change it.
+- Never read, print or write `.env`. Never put a key in code, tests, logs or chat. `.env.example` has variable names and safe defaults only.
+- Mask anything key-like in command output, and search the staged changes for keys before every commit.
 
 ## Talking to the human
 

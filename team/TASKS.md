@@ -1,69 +1,65 @@
-# Tasks for the mock build
+# Tasks
 
 Each person works through their own list in order. One task = one branch = one pull request.
-Start each task in Claude Code with: `/start-task <branch> Task <id> from team/TASKS.md`
+Start a task in Claude Code with: `/start-task <branch> Task <id> from team/TASKS.md`
 
-"Waits for" tells you when a task can start:
-- **A** = the skeleton pull request (Prompt A) is merged. It creates every stub file and spec test.
-- **B** = the port pull request (Prompt B) is merged. It moves the old working code into `core/`.
-- **PS** = the problem statement for the mock is picked and Akshay has written `domain/contracts.py`.
+**Akshay does A1 first** (about 15 minutes) and merges it: it adds the shared shapes that several tasks use.
+Tasks with nothing in "Needs" can start straight away. Paths are inside `backend/app/` unless they start with `backend/` or `frontend/`.
 
-Done when = the spec tests for that function pass with their `xfail` markers removed, plus anything listed.
+## Akshay: pipeline, search, chunking, gate + merges
 
-## Akshay: search side + integrator
-
-| # | Branch | Files | What to build | Done when | Waits for |
+| # | Branch | Files | What to build | Done when | Needs |
 |---|---|---|---|---|---|
-| A1 | `core/skeleton` | many (Prompt A) | Contracts, stubs, spec tests, fixtures, domain templates | Merged, CI green, team told to start | Kit merged |
-| A2 | `core/port` | many (Prompt B) | Move old working code into `core/` and `domains/tickets/` | Old app still runs, all old tests pass | A1 |
-| A3 | `core/chunking` | `core/chunking.py` | `chunk()`: split at headings, then ~220 words with 40 overlap; ids `doc#n`; heading path in metadata | Chunks of `sample_documents.json` keep headings and ids | A |
-| A4 | `core/retrieval-metrics` | `core/retrieval/metrics.py` | `recall_at_k`, `mrr`, `ndcg_at_k` | Hand-checked small examples pass | A |
-| A5 | `core/pipeline` | `core/pipeline.py` | `run()`: runs the domain's steps, times each, stops on `ctx.stop`, confidence = min(signals) | Tickets pack runs through `run()` end to end | B |
-| A6 | `core/search-chunks` | `core/retrieval/` | Index chunks from `load_documents()` + `chunk()`; `Evidence.score` = strength 0..1 | `/api/search` returns cited chunks for the mock data | A3, R3 |
-| A7 | `core/domain-contracts` | `domain/__init__.py`, `domain/contracts.py`, `domain/policy.yaml` | Input/output models and categories for the mock problem | Everyone can build domain files against it | PS |
+| A1 | `core/shared-shapes` | `contracts.py` | Add `Document` and `Finding` (docs/ARCHITECTURE.md section 2); `Match.source_type` also allows `"doc"`; `Classification.candidates: list[str] = []` (conformal set); `AnalysisResult.findings: list[Finding] = []` | All existing tests pass; frontend still builds | — |
+| A2 | `core/chunking` | `pipeline/chunking.py` | `chunk(doc)`: split at headings, then ~220 words with 40 overlap; ids `doc#n`; heading path in metadata; returns `Match` items with `source_type="doc"` | Tests on a sample Markdown document pass | A1 |
+| A3 | `core/error-code-tokens` | `pipeline/retrieve.py` | Tokenizer keeps codes like `ERR_42`, `0x80070005`, `HTTP 429` as one token | New test passes; old search tests still pass | — |
+| A4 | `core/index-docs` | `pipeline/retrieve.py` | The index also loads chunks from `backend/data/processed/documents.jsonl` when it exists | `/api/search` returns document chunks for an ingested file | A2, R3 |
+| A5 | `core/route-findings` | `pipeline/orchestrator.py`, `route()` in `verify.py` | Run Atheesha's checks after citation checking; a `block` finding removes the step or escalates; more than one conformal candidate gives CLARIFY | Findings and the reason show in the trace | T1, S2 |
 
-Every 45 minutes: merge round (checklist in the team doc), then post "pull main".
+Every 45 minutes: merge round (review, squash and merge), then post "pull main" in the group.
 
-## Atheesha: answer side (LLM, safety, answer quality)
+## Atheesha: LLM, safety checks, answer quality
 
-| # | Branch | Files | What to build | Done when | Waits for |
+| # | Branch | Files | What to build | Done when | Needs |
 |---|---|---|---|---|---|
-| T1 | `ai/numbers-check` | `core/guardrails/numbers.py` | `check_numbers()`: every number in the answer must appear in its cited evidence | Flags "500 requests" when the evidence says 100 | A |
-| T2 | `ai/certainty-pii` | `core/guardrails/certainty.py`, `pii_out.py` | Flag "definitely/guaranteed/confirmed" not backed by evidence; find personal data in the output | Both checks return the right findings on fixtures | A |
-| T3 | `ai/llm-cache` | `core/llm/cache.py` | `get`/`put` keyed by hash of model + prompts + corpus version | Same key returns the saved answer; off in tests | A |
-| T4 | `ai/gateway` | `core/llm/gateway.py`, `providers/openai_compat.py` | `generate()`: any output schema, Gemini, then Groq or Ollama (`LLM_BASE_URL`), then extractive; one repair retry | Works with the fake LLM; falls back when a provider fails | B |
-| T5 | `ai/rag-evals` | `core/evals/rag.py` | `citation_precision`, `groundedness`, `number_faithfulness`, `abstention` | Hand-made run results give the expected numbers | A |
-| T6 | `ai/redteam` | `scripts/redteam.py`, `data/redteam/attacks.jsonl` | About 20 attacks: prompt injection, personal data, hazards, off-topic, typos, mixed language | Prints a pass rate per category | B |
-| T7 | `ai/domain-prompt` | `domain/prompts.py`, `domain/checks.py` | Prompt and domain checks for the mock problem | One real run returns checked JSON | PS, T4 |
+| T1 | `ai/numbers-check` | `pipeline/checks.py` | `check_numbers(rec, matches)`: every number in a step must appear in a cited source | Flags "500 requests" when the source says 100 | A1 |
+| T2 | `ai/certainty-pii` | `pipeline/checks.py` | `check_certainty` ("definitely", "guaranteed", "confirmed" not backed by the source) and `check_pii_out` (personal data in the output) | Both return the right findings in tests | A1 |
+| T3 | `ai/openai-compat` | `llm/openai_compat.py`, `llm/router.py` | One provider for any OpenAI-style API, so Groq and Ollama share code; base URL from `LLM_BASE_URL` (ask Akshay to add it to `config.py`) | Works against the fake server in tests; Groq still works | — |
+| T4 | `ai/llm-cache` | `llm/cache.py`, `llm/router.py` | Cache answers by hash of model + prompts + data version; off in tests | A repeated call returns the cached answer without calling the provider | — |
+| T5 | `ai/answer-evals` | `evals/answers.py` | `citation_precision`, `groundedness`, `number_faithfulness`, `abstention` over a list of `AnalysisResult` | Hand-made results give the expected numbers | — |
+| T6 | `ai/redteam` | `backend/scripts/redteam.py`, `backend/data/redteam/attacks.jsonl` | About 20 attacks: prompt injection, personal data, hazards, off-topic, typos, mixed language. Runs offline | Prints a pass rate per category | — |
 
-## Raswanth: ML classification
+## Raswanth: ML classification and training data
 
-| # | Branch | Files | What to build | Done when | Waits for |
+| # | Branch | Files | What to build | Done when | Needs |
 |---|---|---|---|---|---|
-| S1 | `ml/conformal` | `core/ml/conformal.py` | `fit_qhat()`, `predict_set()` (split conformal, alpha 0.1) | A clear-cut input gives a set of 1 label; an ambiguous one gives 2 or more | A |
-| S2 | `ml/cost-threshold` | `core/ml/thresholds.py` | `cost_threshold()`: pick the cut-off with the lowest expected cost | Returns the known best threshold on a toy example | A |
-| S3 | `ml/generic-classifier` | `core/ml/classifier.py`, `scripts/train.py` | `train()`/`predict()` from any CSV with `text,label` columns; calibrated; saved with joblib | Tickets data trains; probabilities sum to 1 | B |
-| S4 | `ml/classify-step` | `domain/steps.py` | Classify step: sets category, `classifier_prob` signal, conformal set; more than 1 label gives the CLARIFY reason | Shows in a full pipeline run | A5, S1, S3 |
-| S5 | `ml/tune-gate` | `scripts/tune_gate.py` | Uses `cost_threshold` on the validation set; prints a threshold for Akshay | Prints threshold + expected cost | S2, K4 |
+| S1 | `ml/conformal` | `ml/conformal.py` | `fit_qhat()` and `predict_set()` (split conformal, alpha 0.1) | A clear ticket gives 1 candidate; an ambiguous one gives 2 or more | — |
+| S2 | `ml/candidates` | `pipeline/classify.py` | Fit `qhat` on the validation set when the model is trained; fill `Classification.candidates` | Shows in `/api/analyze` results | A1, S1 |
+| S3 | `ml/cost-threshold` | `ml/thresholds.py`, `backend/scripts/tune_gate.py` | `cost_threshold()`: the threshold with the lowest expected cost; `tune_gate.py` prints it next to the current choice (costs in `policy.yaml`: ask Akshay) | Prints threshold + expected cost | — |
 
-## Akhilesh: maths analysis, evaluation report, pitch
+## Akhilesh: evaluation, maths analysis, pitch
 
-| # | Branch | Files | What to build | Done when | Waits for |
+| # | Branch | Files | What to build | Done when | Needs |
 |---|---|---|---|---|---|
-| K1 | `analysis/calibration-ci` | `core/analysis/stats.py` | `calibration()` (ECE, Brier, bins), `bootstrap_ci()` | Matches hand-worked examples | A |
-| K2 | `analysis/mcnemar-riskcov` | `core/analysis/stats.py` | `mcnemar()`, `risk_coverage()` | Matches hand-worked examples | K1 |
-| K3 | `analysis/baselines` | `core/analysis/baselines.py` | Majority-class and keyword baselines | Toy examples pass | A |
-| K4 | `analysis/eval-sets` | `data/eval/` | Train/validation/test splits for the mock problem + `README.md` (source, size, how made) | Splits saved; no overlap between them | PS, R3 |
-| K5 | `analysis/evaluate` | `scripts/evaluate.py` | Report with ML, search and answer sections; each metric with CI, n and baseline; writes JSON + Markdown | `docs/eval_report.md` generated from one command | K1-K4, A4, T5 |
-| K6 | `docs/pitch-demo` | `docs/pitch/`, `docs/DEMO-SCRIPT.md` | Pitch outline and a 3-minute demo script; numbers only from `eval_report.json` | Team rehearses it once | K5 |
+| K1 | `analysis/stats` | `analysis/stats.py` | `brier`, `bootstrap_ci`, `mcnemar`, `risk_coverage` | Match hand-worked examples in tests | — |
+| K2 | `analysis/baselines` | `analysis/baselines.py` | Majority-class baseline (the kNN baseline already exists in `classify.py`) | Tests pass | — |
+| K3 | `analysis/report-ci` | `backend/scripts/evaluate.py` | Add 95% confidence intervals, Brier score, McNemar (calibrated model vs kNN) and the majority baseline to the report | `docs/eval_report.md` shows them | K1, K2 |
+| K4 | `analysis/risk-coverage` | `backend/scripts/evaluate.py` | Table: accuracy against share of tickets answered as the threshold moves | In the report | K1 |
+| K5 | `analysis/answer-section` | `backend/scripts/evaluate.py` | Answer-quality section using `evals/answers.py` (extractive runs) | In the report | T5 |
+| K6 | `docs/pitch-demo` | `docs/pitch/`, `docs/DEMO-SCRIPT.md` | Pitch outline and a 3-minute demo script; numbers only from `docs/eval_report.md` | Team rehearses it once | K3 |
 
 ## Roshan: data ingestion, API, database, frontend
 
-| # | Branch | Files | What to build | Done when | Waits for |
+| # | Branch | Files | What to build | Done when | Needs |
 |---|---|---|---|---|---|
-| R1 | `data/parsers` | `core/ingest/parsers.py` | `parse_file()` for csv, json, jsonl, pdf, md, html, txt; `load_folder()`; metadata with sha256 and source | Each format loads into `Document`s | A |
-| R2 | `data/dedupe` | `core/ingest/dedupe.py` | Exact (sha256) and near-duplicate (Jaccard 0.9 or more) removal, with a report | Duplicates in a test folder are removed and reported | A |
-| R3 | `data/ingest-script` | `scripts/ingest.py`, `domain/corpus.py` | Ingest the mock problem's data; `load_documents()` | `python -m scripts.ingest <folder>` writes `documents.jsonl` | PS, R1, R2 |
-| R4 | `fe/meta-shell` | `frontend/src/` | Screen builds its form, labels and outcome texts from `/api/meta`; demo mode in `src/lib/api.js` | Editing a sample `ui.json` changes the screen with no React edits | A |
-| R5 | `api/meta-audit` | `core/api/routes.py`, `core/audit/store.py` | `/api/meta`, `/api/ingest` upload; hash-chained runs table, `verify_chain`, masked CSV export | `/api/audit/verify` says the chain is valid | B |
-| R6 | `fe/eval-review` | `frontend/src/` | Evaluation page (reads `eval_report.json`), review panel (approve, edit, reject) | Both pages work on the live backend | R5, K5 |
+| R1 | `data/parsers` | `ingest/parsers.py` | `parse_file()` for csv, json, jsonl, pdf, md, html, txt; `load_folder()`; metadata with sha256 and source | Each format loads into `Document`s in tests | A1 |
+| R2 | `data/dedupe` | `ingest/dedupe.py` | Exact (sha256) and near-duplicate (Jaccard 0.9 or more) removal, with a report | Duplicates in a test folder are removed and reported | A1 |
+| R3 | `data/ingest-script` | `backend/scripts/ingest.py` | Load a folder, redact, dedupe, write `backend/data/processed/documents.jsonl` | One command ingests a sample folder | R1, R2 |
+| R4 | `api/audit-export` | `db/`, `main.py` | Hash chain on saved analyses (`prev_hash`, `hash`), `GET /api/audit/verify`, `GET /api/export.csv` with personal data masked | Verify says the chain is valid; editing a row breaks it | — |
+| R5 | `api/meta` | `ui.json`, `main.py`, `frontend/src/lib/` | `GET /api/meta` returns labels and form fields; the frontend reads them, falling back to `words.js` | Changing `ui.json` changes the screen text | — |
+| R6 | `fe/findings` | `frontend/src/components/` | Show findings and conformal candidates on the result screen | Visible for a ticket that triggers them | A5 |
+
+## When the problem statement is known
+
+Each person adapts their own part (docs/ARCHITECTURE.md section 5) before building new features:
+Akshay the models and policy, Raswanth the categories and training data, Roshan the documents and the screen labels, Atheesha the prompt, schema and attack cases, Akhilesh the test sets and the report.

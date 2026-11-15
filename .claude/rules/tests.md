@@ -5,8 +5,7 @@ paths:
 
 # Tests
 
-- File names: `test_<area>_<name>.py`. The owner of the code owns its test file.
-- No network, no real LLM, no real embedding model: use the fake LLM and `HashEmbedder`.
-- One behaviour per test, named after it: `test_numbers_flags_number_missing_from_evidence`.
-- `xfail` markers in skeleton tests are the specification: remove the marker when you implement the function.
-- Use the shared fixtures in `backend/tests/fixtures/`. Add new fixture files only for your own area.
+- New tests go in a new file for your area: `test_<area>_<name>.py`. Existing files are shared; add to them only for code you own.
+- No network, no real LLM, no real embedding model: `conftest.py` forces offline mode.
+- One behaviour per test, named after it: `test_numbers_flags_number_missing_from_source`.
+- Never delete, skip or weaken a test to make it pass.
