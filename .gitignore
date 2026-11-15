@@ -218,3 +218,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Personal Claude Code files (each teammate keeps their own)
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Generated
+backend/models/
+backend/data/processed/
