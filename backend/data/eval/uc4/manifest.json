@@ -1,0 +1,46 @@
+{
+  "generator": "uc4-gen-1.0",
+  "seed": 42,
+  "base_time": "2026-10-05T00:00:00.000Z",
+  "policy_sha256": "197a13600acd94aa5ba73191426f176b920c20851d1172ae31af323235de619f",
+  "counts": {
+    "cases": 90,
+    "log_lines": 6051,
+    "metric_rows": 14200,
+    "changes": 114,
+    "cases_by_split": {
+      "calibration": 15,
+      "test": 32,
+      "train": 43
+    },
+    "cases_by_class": {
+      "authentication": 13,
+      "authorization": 12,
+      "dependency": 13,
+      "rate_limit": 13,
+      "server_error": 14,
+      "timeout": 13,
+      "validation": 12
+    },
+    "cases_by_difficulty": {
+      "easy": 28,
+      "hard": 28,
+      "insufficient": 6,
+      "medium": 28
+    },
+    "classifier_rows": {
+      "calibration": 133,
+      "test": 303,
+      "train": 427
+    }
+  },
+  "files": {
+    "cases/cases.jsonl": "bb7a94c4bc7ade171f717a610ef38f06e7041fa543590b5064581e0e3fbf16bd",
+    "cases/classifier_calibration.csv": "41e0360ff462824b4e4b814551c506061ae58fd296a7362a9f99109382ac0abb",
+    "cases/classifier_test.csv": "e51a6fbdd9af21beed0b2a0769f22d384717fdc172814b83b44465064d2894b1",
+    "cases/classifier_train.csv": "aaecc5ac37f5c26d201f33ce307c374df899490beae45a683b5ae93cc0184fce",
+    "changes/changes.jsonl": "7cfa9d2b6b8f200fc22d017e969bd1f257e6b2fb0df75b54ca645d51d618987b",
+    "logs/requests.jsonl": "9eda272ab2acd8354ade457570a61cb9f2bc3b4554d395c89738132a3a22d9b9",
+    "metrics/metrics.csv": "08fc40dd01d56193704c7ad29a9705367811616f86fa395454d823a6bcc452bf"
+  }
+}
