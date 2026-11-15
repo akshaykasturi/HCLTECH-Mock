@@ -1,0 +1,2 @@
+Sync test file created by Roshan on 2026-11-15.
+If you can see this file on your laptop, autosync is working.
