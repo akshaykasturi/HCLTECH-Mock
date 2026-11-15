@@ -1,31 +1,26 @@
 # Team rules for every Claude Code session in this repo
 
 Five people build one app, each with their own Claude Code. These rules keep all of us building the same thing the same way.
-They are guidance, not locks: follow them, and when a task needs something they don't cover, ask the human.
+They are guidance: anyone can work on any file, push their own branch and merge their own pull request once CI is green.
 The design and the file map are imported below from docs/ARCHITECTURE.md. Read them before writing code.
 
 @docs/ARCHITECTURE.md
 
 ## Who you are working for
 
-`CLAUDE.local.md` (repo root, not committed) says which person you are helping and which files they own.
+`CLAUDE.local.md` (repo root, not committed) says which person you are helping and their main area.
 If it is missing, ask the human who they are, and suggest copying theirs from `team/personal/<name>/`.
+The "Lead" column in docs/ARCHITECTURE.md says who knows a file best: who to ask, not who is allowed.
 
 ## The one design rule
 
 Deterministic code decides. The LLM only writes words. Code checks every LLM output before anyone sees it.
 Never fake AI results with hardcoded outputs.
 
-## Ownership
-
-Each file has an owner (docs/ARCHITECTURE.md section 3). Work in your human's files.
-If a task needs a change in someone else's file, say what change is needed and who owns it, and let the human decide.
-Shared files (`backend/app/contracts.py`, `backend/requirements.txt`, `backend/app/config.py`, `.github/`, `.claude/`, `CLAUDE.md`, `docs/ARCHITECTURE.md`) go through Akshay.
-
 ## Before writing code
 
-1. The human starts a task with `/start-task <branch> <what>`.
-2. For anything touching more than one file, write a short plan first (files, functions, tests) and wait for approval.
+1. Start a task with `/start-task <branch> <what>`.
+2. For anything touching several files, write a short plan first (files, functions, tests), then carry on.
 3. If a command or script doesn't exist yet, say so. Never invent one.
 
 ## How code is written here
@@ -33,7 +28,7 @@ Shared files (`backend/app/contracts.py`, `backend/requirements.txt`, `backend/a
 - Python 3.12, FastAPI, Pydantic v2. Type hints on every function. A one-line docstring on every public function.
 - Shared data shapes come from `app.contracts`. Don't redefine them in other files.
 - Touch only the lines the task needs. Don't reformat files, reorder imports or rename things you weren't asked to change.
-- No new dependency without asking (requirements.txt is shared).
+- New dependencies go in `backend/requirements.txt`; mention them in the pull request.
 - Thresholds, keywords and rules live in `backend/app/policy.yaml`. Settings come from environment variables through `app.config`. Never hardcode them.
 - LLM calls go through `app.llm.router` (`run_llm`). Never call a provider SDK from anywhere else.
 - The LLM chain object is shared across requests: return per-request data from each call; never store it on the shared object.
@@ -56,12 +51,11 @@ Shared files (`backend/app/contracts.py`, `backend/requirements.txt`, `backend/a
 
 ## Git
 
-- Run git steps one at a time; don't chain them with `;` when a step can fail.
-- Check `git status` before switching branches.
-- One task = one branch = one pull request. After a pull request is merged, start the next task from a fresh `main`.
+- One task = one branch = one pull request. Start each task from a fresh `main`, and pull `main` often.
+- Run git steps one at a time; don't chain them with `;` when a step can fail. Check `git status` before switching branches.
 - Commit messages: `<lane>: <what>`, for example `ml: add conformal sets`. No quotes inside the message (PowerShell 5.1 breaks).
-- Before every commit run `/ready-pr`: it checks files, secrets and tests, and writes the pull request text.
-- Push only after the human says yes. Never force-push or `reset --hard` (the settings block these two).
+- `/ready-pr` runs the tests, checks for secrets and junk, commits, pushes and prints the pull request link.
+- Merge your own pull request once CI is green. Never force-push.
 - `gh` isn't installed. Pull request link: https://github.com/akshaykasturi/HCLTECH-Mock/pull/new/<branch>
 
 ## Secrets

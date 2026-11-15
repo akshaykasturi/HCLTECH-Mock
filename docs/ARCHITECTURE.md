@@ -1,7 +1,7 @@
 # Architecture
 
-What the app is, where each part lives and who owns it. The code is the working IT ticket assistant; we keep its layout.
-If code and this file disagree, tell Akshay so one of them gets fixed.
+What the app is, where each part lives and who leads it (who to ask, not who is allowed). The code is the working IT ticket assistant; we keep its layout.
+If code and this file disagree, fix one of them.
 
 ## 1. The pipeline: `backend/app/pipeline/orchestrator.py`, `analyse(ticket, llm) -> AnalysisResult`
 
@@ -11,7 +11,7 @@ ticket -> 1 redact -> 2 classify -> 3 retrieve -> 4 gate -> 5 generate -> 6 veri
                                                      +-> stops here (ESCALATE or CLARIFY) with no LLM call
 ```
 
-| Step | What it does | File | Owner |
+| Step | What it does | File | Lead |
 |---|---|---|---|
 | 1 redact | Masks emails, phone numbers, IPs and secrets before anything else sees the text | `pipeline/redact.py` | Atheesha |
 | 2 classify | Category, subcategory, priority, calibrated confidence | `pipeline/classify.py` | Raswanth |
@@ -27,12 +27,12 @@ Outcomes: `RECOMMEND` (fix shown), `CLARIFY` (ask for more detail), `ESCALATE` (
 Signals (0 to 1): `classifier`, `retrieval`, `grounding`. Confidence = the smallest.
 Rule: deterministic code decides; the LLM only writes words; code checks every LLM output.
 
-## 2. Shared data shapes: `backend/app/contracts.py` (owner Akshay)
+## 2. Shared data shapes: `backend/app/contracts.py` (lead Akshay)
 
 Existing models (read the file for fields): `TicketIn`, `SearchFilters`, `SearchRequest`, `Classification`, `Match`, `Citation`, `Recommendation`, `AuditEvent`, `AnalysisResult`, `FeedbackIn`, `FeedbackOut`, `AnalysisSummary`, `AnalysisRecord`, `Stats`, `ErrorInfo`, `Envelope`.
-The frontend and the database depend on them, so ask Akshay before changing one.
+The frontend and the database depend on them: say so in the pull request when you change one.
 
-To be added by Akshay (task A1 in `team/TASKS.md`), so new modules share them:
+To be added in task A1 (`team/TASKS.md`), so new modules share them:
 
 ```python
 class Document(BaseModel):     # one loaded file or record, before chunking
@@ -56,7 +56,7 @@ Paths are inside `backend/app/` unless they start with `backend/`, `frontend/`, 
 
 ### Existing files
 
-| File | Owner | What it holds |
+| File | Lead | What it holds |
 |---|---|---|
 | `contracts.py` | Akshay (shared) | All shared models |
 | `config.py` | Akshay (shared) | `get_settings()`, `get_policy()`; settings from environment variables |
@@ -85,7 +85,7 @@ Paths are inside `backend/app/` unless they start with `backend/`, `frontend/`, 
 
 ### New files (agreed paths; create them here)
 
-| File | Owner | Functions |
+| File | Lead | Functions |
 |---|---|---|
 | `pipeline/chunking.py` | Akshay | `chunk(doc: Document, max_words: int = 220, overlap: int = 40) -> list[Match]` |
 | `ingest/parsers.py` | Roshan | `parse_file(path: Path) -> list[Document]`; `load_folder(folder: Path) -> list[Document]` |
@@ -104,7 +104,7 @@ Paths are inside `backend/app/` unless they start with `backend/`, `frontend/`, 
 
 New folders (`ingest/`, `ml/`, `analysis/`, `evals/`) need an empty `__init__.py`.
 
-## 4. API (owner Roshan)
+## 4. API (lead Roshan)
 
 Every response: `{"ok": bool, "request_id": str, "data": ..., "error": {"code": str, "message": str} | null}`.
 
@@ -115,7 +115,7 @@ The frontend depends on paths and response shapes: change them only together wit
 
 ## 5. What changes for a new problem statement
 
-| What | Where | Owner |
+| What | Where | Lead |
 |---|---|---|
 | Input and output models | `contracts.py` (`TicketIn`, `Classification`, `Recommendation`) | Akshay |
 | Categories and training data | `backend/data/`, `scripts/generate_data.py`, `classify.py` | Raswanth |

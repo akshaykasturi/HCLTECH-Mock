@@ -2,7 +2,7 @@
 
 I am Atheesha. My lane: LLM, safety checks, answer quality, red-team.
 
-My files:
+My main area (I can still work anywhere):
 
 - backend/app/llm/
 - backend/app/pipeline/generate.py, redact.py, checks.py (new)
@@ -14,5 +14,4 @@ My files:
 
 My tests: new files named backend/tests/test_<my area>_<name>.py.
 
-Work in my files. If a task needs someone else's file, tell me whose it is and what to ask them; I decide.
 Explain things to me simply: I must be able to explain my code to the judges.

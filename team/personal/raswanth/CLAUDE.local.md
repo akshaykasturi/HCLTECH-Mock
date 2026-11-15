@@ -2,7 +2,7 @@
 
 I am Raswanth. My lane: ML classification and training data.
 
-My files:
+My main area (I can still work anywhere):
 
 - backend/app/pipeline/classify.py
 - backend/app/ml/ (new)
@@ -11,5 +11,4 @@ My files:
 
 My tests: new files named backend/tests/test_<my area>_<name>.py.
 
-Work in my files. If a task needs someone else's file, tell me whose it is and what to ask them; I decide.
 Explain things to me simply: I must be able to explain my code to the judges.
