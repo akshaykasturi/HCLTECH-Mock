@@ -1,0 +1,572 @@
+[
+  {
+    "kb_id": "KB0001",
+    "title": "Password / lockout: my password expired and I can't log in to Windows",
+    "category": "Access & Identity",
+    "subcategory": "Password / lockout",
+    "application": "Active Directory",
+    "status": "approved",
+    "steps": [
+      "Verified identity via employee ID and manager confirmation.",
+      "Reset password in Active Directory and set 'change at next logon'.",
+      "Explained the history rule: the last 10 passwords cannot be reused."
+    ],
+    "scenario_id": "acc_pwd_expired"
+  },
+  {
+    "kb_id": "KB0002",
+    "title": "Password / lockout: my account is locked out",
+    "category": "Access & Identity",
+    "subcategory": "Password / lockout",
+    "application": "Active Directory",
+    "status": "approved",
+    "steps": [
+      "Checked lockout source in AD lockout status tool: mobile mail client with stale password.",
+      "Unlocked the account.",
+      "Asked the user to update the password on the phone mail app, then confirmed no further lockouts."
+    ],
+    "scenario_id": "acc_locked_out"
+  },
+  {
+    "kb_id": "KB0003",
+    "title": "MFA: got a new phone and MFA codes don't work",
+    "category": "Access & Identity",
+    "subcategory": "MFA",
+    "application": "Microsoft Authenticator",
+    "status": "approved",
+    "steps": [
+      "Verified identity through manager callback.",
+      "Revoked the old MFA method and issued a temporary access pass.",
+      "Guided user to register Microsoft Authenticator on the new phone and tested a sign-in."
+    ],
+    "scenario_id": "acc_mfa_new_phone"
+  },
+  {
+    "kb_id": "KB0004",
+    "title": "MFA: MFA code always says invalid",
+    "category": "Access & Identity",
+    "subcategory": "MFA",
+    "application": "Microsoft Authenticator",
+    "status": "approved",
+    "steps": [
+      "Found phone clock was 3 minutes off; TOTP codes are time based.",
+      "Set phone date and time to automatic.",
+      "Code accepted on next attempt."
+    ],
+    "scenario_id": "acc_mfa_time_drift"
+  },
+  {
+    "kb_id": "KB0005",
+    "title": "Permission request: need access to the finance shared drive",
+    "category": "Access & Identity",
+    "subcategory": "Permission request",
+    "application": "File Server",
+    "status": "approved",
+    "steps": [
+      "Obtained data-owner approval in the access request.",
+      "Added user to the AD security group for the share.",
+      "Asked user to log off and on to refresh group membership; access confirmed."
+    ],
+    "scenario_id": "acc_shared_folder"
+  },
+  {
+    "kb_id": "KB0006",
+    "title": "Permission request: missing authorization in SAP for transaction",
+    "category": "Access & Identity",
+    "subcategory": "Permission request",
+    "application": "SAP",
+    "status": "approved",
+    "steps": [
+      "Ran SU53 to capture the failed authorization object.",
+      "Raised role change with approval from the process owner.",
+      "Assigned the AP clerk role; user confirmed transaction works."
+    ],
+    "scenario_id": "acc_sap_role"
+  },
+  {
+    "kb_id": "KB0007",
+    "title": "VPN: VPN won't connect from home",
+    "category": "Network",
+    "subcategory": "VPN",
+    "application": "GlobalProtect VPN",
+    "status": "approved",
+    "steps": [
+      "Confirmed the device certificate had expired.",
+      "Re-enrolled the device certificate via the company portal.",
+      "Restarted GlobalProtect; VPN connected."
+    ],
+    "scenario_id": "net_vpn_cert"
+  },
+  {
+    "kb_id": "KB0008",
+    "title": "VPN: VPN is extremely slow",
+    "category": "Network",
+    "subcategory": "VPN",
+    "application": "GlobalProtect VPN",
+    "status": "approved",
+    "steps": [
+      "Found client connected to a distant gateway.",
+      "Set preferred gateway to the nearest region.",
+      "Throughput back to normal; advised to disable split-tunnel override."
+    ],
+    "scenario_id": "net_vpn_slow"
+  },
+  {
+    "kb_id": "KB0009",
+    "title": "Wi-Fi: cannot connect to office Wi-Fi",
+    "category": "Network",
+    "subcategory": "Wi-Fi",
+    "application": "Corporate Wi-Fi",
+    "status": "approved",
+    "steps": [
+      "Laptop was missing the 802.1X Wi-Fi profile after reimage.",
+      "Pushed the Wi-Fi profile through Intune.",
+      "Device joined the corporate SSID."
+    ],
+    "scenario_id": "net_wifi_auth"
+  },
+  {
+    "kb_id": "KB0010",
+    "title": "Wi-Fi: no Wi-Fi on the whole floor",
+    "category": "Network",
+    "subcategory": "Wi-Fi",
+    "application": "Corporate Wi-Fi",
+    "status": "approved",
+    "steps": [
+      "Found access point offline on the floor switch.",
+      "Power-cycled the PoE port and replaced a faulty patch cable.",
+      "All clients reconnected; monitoring added for the AP."
+    ],
+    "scenario_id": "net_wifi_floor"
+  },
+  {
+    "kb_id": "KB0011",
+    "title": "DNS / proxy: intranet site not loading",
+    "category": "Network",
+    "subcategory": "DNS / proxy",
+    "application": "Intranet",
+    "status": "approved",
+    "steps": [
+      "Laptop had a manually set public DNS server.",
+      "Reset adapter to obtain DNS automatically and flushed DNS cache.",
+      "Intranet resolved and loaded."
+    ],
+    "scenario_id": "net_dns_intranet"
+  },
+  {
+    "kb_id": "KB0012",
+    "title": "DNS / proxy: website blocked by proxy",
+    "category": "Network",
+    "subcategory": "DNS / proxy",
+    "application": "Web Proxy",
+    "status": "approved",
+    "steps": [
+      "Reviewed site reputation; safe business site.",
+      "Recategorised the URL in the proxy allow list after security approval.",
+      "User confirmed access."
+    ],
+    "scenario_id": "net_proxy_block"
+  },
+  {
+    "kb_id": "KB0013",
+    "title": "Outlook sync: Outlook not syncing new emails",
+    "category": "Email & Collaboration",
+    "subcategory": "Outlook sync",
+    "application": "Outlook",
+    "status": "approved",
+    "steps": [
+      "Confirmed mailbox healthy via webmail.",
+      "Created a new Outlook profile and rebuilt the OST cache.",
+      "Mail synced fully."
+    ],
+    "scenario_id": "eml_outlook_profile"
+  },
+  {
+    "kb_id": "KB0014",
+    "title": "Outlook sync: Outlook keeps asking for password",
+    "category": "Email & Collaboration",
+    "subcategory": "Outlook sync",
+    "application": "Outlook",
+    "status": "approved",
+    "steps": [
+      "Cleared stale credentials from Windows Credential Manager.",
+      "Signed out of Office apps and signed in with the new password.",
+      "Prompts stopped and Outlook synced."
+    ],
+    "scenario_id": "eml_outlook_password"
+  },
+  {
+    "kb_id": "KB0015",
+    "title": "Mailbox quota: mailbox full, can't send emails",
+    "category": "Email & Collaboration",
+    "subcategory": "Mailbox quota",
+    "application": "Exchange Online",
+    "status": "approved",
+    "steps": [
+      "Mailbox at 49.8 of 50 GB.",
+      "Enabled online archive and applied a 2-year auto-archive policy.",
+      "Mailbox below 60%; sending and receiving restored."
+    ],
+    "scenario_id": "eml_quota"
+  },
+  {
+    "kb_id": "KB0016",
+    "title": "Mailbox quota: shared mailbox not showing in Outlook",
+    "category": "Email & Collaboration",
+    "subcategory": "Mailbox quota",
+    "application": "Exchange Online",
+    "status": "approved",
+    "steps": [
+      "Granted Full Access and Send As on the shared mailbox.",
+      "Waited for automapping to apply.",
+      "Mailbox appeared in Outlook after restart."
+    ],
+    "scenario_id": "eml_shared_mailbox"
+  },
+  {
+    "kb_id": "KB0017",
+    "title": "Teams calls: no audio in Teams calls",
+    "category": "Email & Collaboration",
+    "subcategory": "Teams calls",
+    "application": "Microsoft Teams",
+    "status": "approved",
+    "steps": [
+      "Teams was using the dock's audio device.",
+      "Selected the headset under Teams device settings and cleared Teams cache.",
+      "Test call audio confirmed both ways."
+    ],
+    "scenario_id": "eml_teams_audio"
+  },
+  {
+    "kb_id": "KB0018",
+    "title": "Teams calls: can't share screen in Teams",
+    "category": "Email & Collaboration",
+    "subcategory": "Teams calls",
+    "application": "Microsoft Teams",
+    "status": "approved",
+    "steps": [
+      "Disabled GPU hardware acceleration in Teams settings.",
+      "Updated the display driver.",
+      "Screen sharing worked on both monitors."
+    ],
+    "scenario_id": "eml_teams_screen"
+  },
+  {
+    "kb_id": "KB0019",
+    "title": "SAP / ERP: SAP short dump when running report",
+    "category": "Application Errors",
+    "subcategory": "SAP / ERP",
+    "application": "SAP",
+    "status": "approved",
+    "steps": [
+      "Analysed the dump in ST22: report exceeded dialog runtime limit.",
+      "Ran the report as a background job in SM36.",
+      "Advised users to schedule large-range reports in background."
+    ],
+    "scenario_id": "app_sap_dump"
+  },
+  {
+    "kb_id": "KB0020",
+    "title": "SAP / ERP: SAP GUI can't connect to the server",
+    "category": "Application Errors",
+    "subcategory": "SAP / ERP",
+    "application": "SAP",
+    "status": "approved",
+    "steps": [
+      "Found the SAP logon entry pointing to an old message server.",
+      "Pushed the current saplogon.ini configuration.",
+      "Connection succeeded."
+    ],
+    "scenario_id": "app_sap_gui_login"
+  },
+  {
+    "kb_id": "KB0021",
+    "title": "CRM: CRM contacts not syncing with Outlook",
+    "category": "Application Errors",
+    "subcategory": "CRM",
+    "application": "Salesforce",
+    "status": "approved",
+    "steps": [
+      "Sync connector token had expired after the password change.",
+      "Reauthorised the Outlook integration in Salesforce settings.",
+      "Triggered a manual sync; contacts and events updated."
+    ],
+    "scenario_id": "app_crm_sync"
+  },
+  {
+    "kb_id": "KB0022",
+    "title": "CRM: Salesforce report shows wrong numbers",
+    "category": "Application Errors",
+    "subcategory": "CRM",
+    "application": "Salesforce",
+    "status": "approved",
+    "steps": [
+      "Report filter was set to a fixed old date range.",
+      "Changed filter to relative 'this quarter' and refreshed the dashboard.",
+      "Numbers matched the opportunity list."
+    ],
+    "scenario_id": "app_crm_report"
+  },
+  {
+    "kb_id": "KB0023",
+    "title": "Internal web app: HR portal shows 500 internal server error",
+    "category": "Application Errors",
+    "subcategory": "Internal web app",
+    "application": "HR Portal",
+    "status": "approved",
+    "steps": [
+      "Application logs showed database connection pool exhausted after the release.",
+      "Rolled back the release and restarted the app service.",
+      "Raised a problem record to fix the connection leak."
+    ],
+    "scenario_id": "app_portal_500"
+  },
+  {
+    "kb_id": "KB0024",
+    "title": "Internal web app: HR portal page not displaying correctly",
+    "category": "Application Errors",
+    "subcategory": "Internal web app",
+    "application": "HR Portal",
+    "status": "approved",
+    "steps": [
+      "Browser cache held an outdated script after the portal update.",
+      "Cleared cache and updated the browser.",
+      "Form submitted successfully."
+    ],
+    "scenario_id": "app_portal_browser"
+  },
+  {
+    "kb_id": "KB0025",
+    "title": "Laptop: laptop battery drains very fast",
+    "category": "Hardware",
+    "subcategory": "Laptop",
+    "application": "Laptop",
+    "status": "approved",
+    "steps": [
+      "Battery report showed 40% design capacity.",
+      "Replaced the battery under warranty.",
+      "Charging and runtime normal."
+    ],
+    "scenario_id": "hw_laptop_battery"
+  },
+  {
+    "kb_id": "KB0026",
+    "title": "Laptop: laptop won't turn on",
+    "category": "Hardware",
+    "subcategory": "Laptop",
+    "application": "Laptop",
+    "status": "approved",
+    "steps": [
+      "BIOS update triggered BitLocker recovery.",
+      "Retrieved the recovery key from Intune after identity check.",
+      "Device booted; suspended and resumed BitLocker to reseal."
+    ],
+    "scenario_id": "hw_laptop_boot"
+  },
+  {
+    "kb_id": "KB0027",
+    "title": "Printer: printer paper jam",
+    "category": "Hardware",
+    "subcategory": "Printer",
+    "application": "Printer",
+    "status": "approved",
+    "steps": [
+      "Removed torn paper fragment from the fuser area.",
+      "Cleaned the pickup rollers.",
+      "Test pages printed fine."
+    ],
+    "scenario_id": "hw_printer_jam"
+  },
+  {
+    "kb_id": "KB0028",
+    "title": "Printer: print jobs stuck in queue",
+    "category": "Hardware",
+    "subcategory": "Printer",
+    "application": "Printer",
+    "status": "approved",
+    "steps": [
+      "Restarted the print spooler service and cleared stuck jobs.",
+      "Reinstalled the printer driver from the print server.",
+      "Printing restored."
+    ],
+    "scenario_id": "hw_printer_queue"
+  },
+  {
+    "kb_id": "KB0029",
+    "title": "Peripherals: external monitor not detected",
+    "category": "Hardware",
+    "subcategory": "Peripherals",
+    "application": "Docking station",
+    "status": "approved",
+    "steps": [
+      "Updated the docking station firmware and display driver.",
+      "Re-seated the USB-C cable.",
+      "Both monitors detected."
+    ],
+    "scenario_id": "hw_monitor"
+  },
+  {
+    "kb_id": "KB0030",
+    "title": "Peripherals: wireless keyboard not working",
+    "category": "Hardware",
+    "subcategory": "Peripherals",
+    "application": "Peripherals",
+    "status": "approved",
+    "steps": [
+      "Moved the wireless receiver from the dock to the laptop port to avoid interference.",
+      "Set the correct keyboard layout in Windows settings.",
+      "Input working normally."
+    ],
+    "scenario_id": "hw_keyboard"
+  },
+  {
+    "kb_id": "KB0031",
+    "title": "Install request: need Python installed on my laptop",
+    "category": "Software",
+    "subcategory": "Install request",
+    "application": "Software Center",
+    "status": "approved",
+    "steps": [
+      "Confirmed the software is on the approved catalogue.",
+      "Published it to the user in Software Center.",
+      "User installed it without admin rights."
+    ],
+    "scenario_id": "sw_install_request"
+  },
+  {
+    "kb_id": "KB0032",
+    "title": "Licence: Adobe says licence expired",
+    "category": "Software",
+    "subcategory": "Licence",
+    "application": "Adobe Acrobat",
+    "status": "approved",
+    "steps": [
+      "User's named licence had been reclaimed after 90 days of inactivity.",
+      "Reassigned an Acrobat Pro licence in the admin console.",
+      "User signed out and in; licence active."
+    ],
+    "scenario_id": "sw_license_expired"
+  },
+  {
+    "kb_id": "KB0033",
+    "title": "Licence: Office says product unlicensed",
+    "category": "Software",
+    "subcategory": "Licence",
+    "application": "Microsoft 365",
+    "status": "approved",
+    "steps": [
+      "Office was activated with a personal account.",
+      "Signed out of all accounts and signed in with the work account.",
+      "Activation succeeded."
+    ],
+    "scenario_id": "sw_office_activation"
+  },
+  {
+    "kb_id": "KB0034",
+    "title": "Update failure: Windows update keeps failing",
+    "category": "Software",
+    "subcategory": "Update failure",
+    "application": "Windows Update",
+    "status": "approved",
+    "steps": [
+      "Freed disk space (C: had 2 GB free).",
+      "Reset Windows Update components and reran the update.",
+      "Device compliant."
+    ],
+    "scenario_id": "sw_update_fail"
+  },
+  {
+    "kb_id": "KB0035",
+    "title": "Update failure: Excel crashes after the latest update",
+    "category": "Software",
+    "subcategory": "Update failure",
+    "application": "Microsoft 365",
+    "status": "approved",
+    "steps": [
+      "Crash traced to an outdated third-party add-in.",
+      "Disabled the add-in and repaired Office.",
+      "Excel stable."
+    ],
+    "scenario_id": "sw_app_crash_update"
+  },
+  {
+    "kb_id": "KB0036",
+    "title": "Phishing report: suspicious email asking for my password",
+    "category": "Security",
+    "subcategory": "Phishing report",
+    "application": "Exchange Online",
+    "status": "approved",
+    "steps": [
+      "Confirmed phishing: spoofed sender, credential-harvesting link.",
+      "Purged the message from all mailboxes and blocked the sender domain.",
+      "Thanked user; no clicks recorded."
+    ],
+    "scenario_id": "sec_phishing"
+  },
+  {
+    "kb_id": "KB0037",
+    "title": "Phishing report: I clicked a link in a suspicious email and entered my password",
+    "category": "Security",
+    "subcategory": "Phishing report",
+    "application": "Exchange Online",
+    "status": "approved",
+    "steps": [
+      "Disabled sign-in and revoked all active sessions.",
+      "Reset password and re-registered MFA.",
+      "Reviewed sign-in logs and mailbox rules for attacker activity; none found."
+    ],
+    "scenario_id": "sec_phish_clicked"
+  },
+  {
+    "kb_id": "KB0038",
+    "title": "Malware alert: antivirus says threat found",
+    "category": "Security",
+    "subcategory": "Malware alert",
+    "application": "Defender for Endpoint",
+    "status": "approved",
+    "steps": [
+      "Isolated the device from the network via Defender.",
+      "Ran full scan; threat quarantined and removed.",
+      "Reviewed timeline: no lateral movement; device released from isolation."
+    ],
+    "scenario_id": "sec_malware_alert"
+  },
+  {
+    "kb_id": "KB0039",
+    "title": "Data exposure: I shared a confidential file with an external person by mistake",
+    "category": "Security",
+    "subcategory": "Data exposure",
+    "application": "OneDrive",
+    "status": "approved",
+    "steps": [
+      "Revoked the sharing link and recalled access.",
+      "Logged a data incident with the privacy team.",
+      "Confirmed the external recipient deleted the file."
+    ],
+    "scenario_id": "sec_data_exposure"
+  },
+  {
+    "kb_id": "KB9001",
+    "title": "VPN: old client workaround (superseded)",
+    "category": "Network",
+    "subcategory": "VPN",
+    "application": "GlobalProtect VPN",
+    "status": "superseded",
+    "steps": [
+      "Uninstall GlobalProtect 5.x and install the legacy AnyConnect client."
+    ],
+    "scenario_id": "net_vpn_cert"
+  },
+  {
+    "kb_id": "KB9002",
+    "title": "Outlook: delete OST file (draft, unreviewed)",
+    "category": "Email & Collaboration",
+    "subcategory": "Outlook sync",
+    "application": "Outlook",
+    "status": "draft",
+    "steps": [
+      "Delete all files in the Outlook folder including PST archives."
+    ],
+    "scenario_id": "eml_outlook_profile"
+  }
+]

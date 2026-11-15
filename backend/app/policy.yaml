@@ -1,0 +1,60 @@
+# All decision thresholds live here, never as constants in code.
+gate:
+  # cosine similarity between the ticket and its best match; one value per embedding model,
+  # because cosines from different models are not comparable. Tuned by scripts/tune_gate.py on
+  # data/validation/validation_tickets.csv (never on the test set).
+  min_retrieval_strength:
+    BAAI/bge-small-en-v1.5: 0.73  # validation: in-scope 0.755-0.939, out-of-scope 0.468-0.703
+    hash-512: 0.41                # tests only (offline hashing vectors)
+  # fewer SPECIFIC words than this -> CLARIFY. Generic words below don't count, so "Computer is being
+  # weird" is vague but "VPN certificate error" (vpn, certificate) is not. Every historical, holdout and
+  # validation ticket has at least 4 specific words, so 2 only catches genuinely vague tickets.
+  min_words_for_analysis: 2
+  generic_words: [issue, problem, help, broken, working, weird, strange, something, computer, laptop,
+                  pc, thing, stuff, error, urgent, please]
+route:
+  min_classifier_confidence: 0.5 # below -> CLARIFY instead of RECOMMEND
+  min_citations: 1               # recommendation with no verified citation -> ESCALATE
+retrieval:
+  top_k: 5
+  rrf_k: 60                      # Reciprocal Rank Fusion constant (the usual value)
+  candidates: 50                 # how many results each of BM25 and dense search contributes to fusion
+  kb_statuses_allowed: [approved]   # draft / superseded articles are never searched
+# Always P1 + ESCALATE, decided by code not the LLM. Matched as whole words (spaces may be any
+# whitespace), so "fire" does not match "firewall" or "firefox".
+safety_keywords:
+  # fire / smoke
+  - burning
+  - smoke
+  - smoking
+  - fire
+  - scorch
+  - melting
+  # electrical
+  - sparks
+  - sparking
+  - electric shock
+  - shocked me
+  - exposed wires
+  # batteries / heat
+  - swelling
+  - swollen
+  - bulging
+  - overheating
+  - overheated
+  - too hot to touch
+  - leaking battery
+  - battery leak
+  # security incidents
+  - data breach
+# Ticket text is data; these regexes (matched on lower-cased text) trigger ESCALATE.
+injection_patterns:
+  # a qualifier (all/any/your/previous/prior/above/earlier) is required; "the" alone is not enough,
+  # so "Outlook seems to ignore the rules I set up" is a normal ticket, not an injection
+  - \b(ignore|disregard|forget)\s+(the\s+)?(all|any|your|previous|prior|above|earlier)(\s+(the|all|any|your|previous|prior|above|earlier))*\s+(instructions|rules|prompts?)\b
+  - \byou are now\b
+  - \bact as (an? )?(admin|system)\b
+  - \bsystem prompt\b
+  - \bdeveloper mode\b
+  - \badmin mode\b
+  - \bapprove (admin|elevated) access\b
