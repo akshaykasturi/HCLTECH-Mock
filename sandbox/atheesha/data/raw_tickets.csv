@@ -1,0 +1,30 @@
+id,title,description,application,created_at
+T001,"  Cannot post invoice in SAP  ","User reports error F5 201 when posting vendor invoice.<br>Contact john.doe@acme.com or call +1 (555) 123-4567 for details.",sap fi,2026-01-05
+T002,"Password reset request","Account locked after 3 failed attempts &amp; user needs a reset.
+Phone: 555-987-6543",Active Directory,05/01/2026
+T003,"Outlook not syncing","<p>Outlook desktop client stopped syncing the inbox this morning.</p><p>New emails appear in OWA but not in the desktop app. User has already restarted the laptop, cleared the cached credentials and recreated the Outlook profile, but the issue persists. The status bar shows &quot;Disconnected&quot; intermittently.</p><p>Other users on the same floor are not affected, so this looks like a profile or mailbox specific problem rather than a network outage. Please investigate urgently as the user is a finance approver.</p>",outlook,"Jan 7, 2026"
+T004,"VPN   disconnects every 10 minutes","GlobalProtect drops the connection roughly every ten minutes when working from home.
+User is on build 6.1 and home Wi-Fi is stable.",globalprotect vpn,2026/01/08
+T002,"Password reset request","Account locked after 3 failed attempts &amp; user needs a reset.
+Phone: 555-987-6543",Active Directory,05/01/2026
+T005,"Printer offline on 3rd floor","",Print Services,08-01-2026
+T006,"SAP FI period close blocked","Month-end period close is blocked for company code 1000.
+The FAGL_FC_VAL job fails with a posting period not open error even though OB52 shows period 12 open for account types A, D, K and S.
+   We tried rerunning the job in test mode and the log shows the same message for all G/L accounts.
+
+Finance needs this resolved before the close deadline. Escalation contact: finance.team@acme.co.uk",SAP FI,2026-01-09T10:15:00
+T007,"cannot post   invoice in sap","user reports error f5 201 when posting vendor invoice.  contact JOHN.DOE@ACME.COM or call +1 (555) 123-4567 for details.",SAP FI,2026-01-06
+T008,"Excel crashes with macros","Excel crashes when opening the Q&amp;A workbook with macros enabled.<br />Safe mode works fine.",ms excel,10 January 2026
+T009,"Teams calls dropping","Teams calls drop after about 2 minutes.  Audio freezes, then the call ends.
+Please call me back on +91 98765 43210.",MS Teams,2026-01-11 14:30
+T006,"SAP FI period close blocked","Month-end period close is blocked for company code 1000.
+The FAGL_FC_VAL job fails with a posting period not open error even though OB52 shows period 12 open for account types A, D, K and S.
+   We tried rerunning the job in test mode and the log shows the same message for all G/L accounts.
+
+Finance needs this resolved before the close deadline. Escalation contact: finance.team@acme.co.uk",SAP FI,2026-01-09T10:15:00
+T010,"SAP MM goods receipt error","<b>Urgent:</b>&nbsp;MIGO goods receipt fails for PO 45001234 with message M7 001.",Sap Mm,12/01/2026
+T011,"Laptop very slow","	Laptop takes over ten minutes to boot and applications freeze frequently.		Task Manager shows disk usage at 100 percent most of the time.
+The device is a three year old model with a spinning hard drive.   User has already run the disk cleanup tool and removed temporary files.
+Request: replace the drive with an SSD or provide a replacement laptop because the user works on large spreadsheets all day.","endpoint mgmt "," 2026-01-13 "
+T012,"Shared drive access","Need read access to the Finance shared drive. Manager approval sent from it-helpdesk@acme.com; reach me on 020 7946 0958.",File Services,"Jan 14, 2026"
+T013,"ServiceNow form broken","Catalog form shows &quot;undefined&quot;<br/>on submit &amp; nothing is saved.",servicenow,15/01/2026
