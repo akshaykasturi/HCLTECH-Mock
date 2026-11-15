@@ -1,6 +1,6 @@
 # Personal Claude Code files (each teammate keeps their own)
-CLAUDE.local.md
-.claude/settings.local.json
+/CLAUDE.local.md
+/.claude/settings.local.json
 
 # Generated
 backend/models/
