@@ -70,8 +70,8 @@ class RankedCause(BaseModel):
     cause: str  # e.g. "token_expired"
     failure_class: str  # e.g. "authentication"
     confidence: float  # posterior with equal priors; sums to 1 over all causes
-    status: CauseStatus  # likely: all confirming signals + confidence >= threshold; probable: confidence >= threshold
-    near_tie: bool  # confidence within the margin of the next or previous cause
+    status: CauseStatus  # likely: all confirming signals + confidence >= threshold + no near-tie; see rank.py
+    near_tie: bool  # within the margin of the top cause, with at least one other cause also there
     supporting: list[SignalLink] = Field(default_factory=list)
     contradicting: list[SignalLink] = Field(default_factory=list)
     confirming_seen: list[str] = Field(default_factory=list)
@@ -84,11 +84,32 @@ class RankedCause(BaseModel):
 Outcome = Literal["RECOMMEND", "CLARIFY"]
 
 
+class DistinguishingSignal(BaseModel):
+    """A signal whose likelihood differs a lot between tied causes: checking it helps tell them apart."""
+
+    signal: str
+    favours: str  # the tied cause under which this signal is most likely to be on
+    p_on: dict[str, float]  # P(signal on | cause) for each tied cause
+    observed: Optional[bool] = None  # its value in this case (None = unknown)
+
+
+class TellApart(BaseModel):
+    """How to tell near-tied causes apart: each one's first check, and the signals that differ between them."""
+
+    causes: list[str]
+    first_checks: dict[str, Optional[str]]
+    signals: list[DistinguishingSignal] = Field(default_factory=list)
+    note: str  # one readable line
+
+
 class GateDecision(BaseModel):
-    """What the pipeline does next: recommend the top cause, or ask for the missing information."""
+    """What the pipeline does next: recommend (maybe with alternatives), or ask for the missing information."""
 
     outcome: Outcome
     escalate: bool  # RECOMMEND and the top cause's first check needs privileged access
     top_cause: Optional[str] = None
     reasons: list[str] = Field(default_factory=list)  # why CLARIFY (empty for RECOMMEND)
     missing_info: list[str] = Field(default_factory=list)
+    low_confidence: bool = False  # RECOMMEND, but the top confidence is below the threshold
+    alternatives: list[str] = Field(default_factory=list)  # every near-tie cause, top first (empty if clear winner)
+    tell_apart: Optional[TellApart] = None  # set when alternatives are listed

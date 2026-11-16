@@ -1,12 +1,15 @@
 """Tune confidence_threshold and near_tie_margin on the VALIDATION split only, and write them to settings.yaml.
 
-Threshold: each validation case scores
-    labelled case:      RECOMMEND with the right top-1 = +1, RECOMMEND with a wrong top-1 = -1, CLARIFY = 0
-    insufficient case:  CLARIFY = +1, RECOMMEND = -1
-  Every threshold in the best-scoring range is equally good on validation; we take the middle of that range,
-  so a small shift in the data does not flip decisions.
-Margin: a near-tie flag should warn about a wrong top-1. For labelled cases, score +1 when the flag is right
-  (flag on a wrong top-1, no flag on a right top-1), and take the middle of the best range.
+CLARIFY no longer depends on these numbers (only missing evidence gives CLARIFY). They decide when a
+RECOMMEND comes with alternatives ("not a clear winner, here is how to tell them apart").
+Each labelled validation case scores:
+    right top-1, no alternatives shown            +1  (clean answer)
+    right top-1, alternatives shown                0  (harmless, but noise)
+    wrong top-1, true cause among alternatives    +1  (we warned, and pointed at the right one)
+    wrong top-1, true cause not shown             -1  (confidently wrong)
+Threshold first (margin 0), then margin with that threshold. Every value in the best-scoring range is
+equally good on validation; we take the middle of the range so a small data shift does not flip decisions.
+Insufficient cases are decided by the missing-evidence rules alone; they are only checked here.
 
 Usage (from backend):  .\\.venv\\Scripts\\python.exe scripts\\tune_rank.py   (add --dry-run to not write)
 """
@@ -18,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.uc4.diagnose import diagnose  # noqa: E402
 from app.uc4.gate import decide  # noqa: E402
-from app.uc4.rank import split_ids  # noqa: E402
+from app.uc4.rank import rank_causes, split_ids  # noqa: E402
 from app.uc4.settings import SETTINGS_FILE  # noqa: E402
 from app.uc4.store import get_case  # noqa: E402
 
@@ -45,39 +48,37 @@ def _middle_of_best(grid: list[float], scores: list[float]) -> tuple[float, floa
 def main(argv: list[str]) -> int:
     diags = [diagnose(get_case(cid)) for cid in split_ids("validation")]
     labelled = [d for d in diags if d.case.expected_cause]
-    print(f"validation: {len(diags)} cases ({len(labelled)} labelled, {len(diags) - len(labelled)} insufficient)")
+    insufficient = [d for d in diags if not d.case.expected_cause]
+    print(f"validation: {len(diags)} cases ({len(labelled)} labelled, {len(insufficient)} insufficient)")
+    for d in insufficient:
+        print(f"  insufficient {d.case.case_id}: {d.decision.outcome} ({'; '.join(d.decision.reasons)})")
 
-    def threshold_score(t: float) -> int:
-        score = 0
-        for d in diags:
-            outcome = decide(d.ranked, d.signals, d.evidence, threshold=t).outcome
-            if d.case.expected_cause is None:
-                score += 1 if outcome == "CLARIFY" else -1
-            elif outcome == "RECOMMEND":
-                score += 1 if d.ranked[0].cause == d.case.expected_cause else -1
-        return score
-
-    def margin_score(m: float) -> int:
-        score = 0
+    def score(t: float, m: float) -> int:
+        total = 0
         for d in labelled:
-            gap = d.ranked[0].confidence - d.ranked[1].confidence
-            flagged = gap <= m
-            wrong = d.ranked[0].cause != d.case.expected_cause
-            score += 1 if flagged == wrong else 0
-        return score
+            ranked = rank_causes(d.signals, d.evidence, threshold=t, margin=m)
+            decision = decide(ranked, d.signals, d.evidence, threshold=t)
+            if decision.outcome == "CLARIFY":  # labelled cases never have missing evidence; just in case
+                continue
+            right = ranked[0].cause == d.case.expected_cause
+            if right:
+                total += 0 if decision.alternatives else 1
+            else:
+                total += 1 if d.case.expected_cause in decision.alternatives else -1
+        return total
 
-    t_scores = [threshold_score(t) for t in THRESHOLDS]
-    m_scores = [margin_score(m) for m in MARGINS]
+    t_scores = [score(t, 0.0) for t in THRESHOLDS]
     threshold, t_best, t_lo, t_hi = _middle_of_best(THRESHOLDS, t_scores)
+    m_scores = [score(threshold, m) for m in MARGINS]
     margin, m_best, m_lo, m_hi = _middle_of_best(MARGINS, m_scores)
 
-    print("threshold score: " + "  ".join(f"{t:.2f}:{s}" for t, s in zip(THRESHOLDS, t_scores)))
-    print(f"-> confidence_threshold {threshold} (score {t_best}, best range {t_lo}-{t_hi})")
-    print("margin score:    " + "  ".join(f"{m:.2f}:{s}" for m, s in zip(MARGINS, m_scores)))
+    print("threshold score (margin 0): " + "  ".join(f"{t:.2f}:{s}" for t, s in zip(THRESHOLDS, t_scores)))
+    print(f"-> confidence_threshold {threshold} (score {t_best}/{len(labelled)}, best range {t_lo}-{t_hi})")
+    print(f"margin score (threshold {threshold}): " + "  ".join(f"{m:.2f}:{s}" for m, s in zip(MARGINS, m_scores)))
     print(f"-> near_tie_margin {margin} (score {m_best}/{len(labelled)}, best range {m_lo}-{m_hi})")
-    print("top-1 gaps on validation (wrong top-1 marked *): " + ", ".join(
+    print("top-1 confidence / gap on validation (wrong top-1 marked *): " + ", ".join(
         f"{d.case.case_id}{'*' if d.ranked[0].cause != d.case.expected_cause else ''}="
-        f"{d.ranked[0].confidence - d.ranked[1].confidence:.2f}" for d in labelled))
+        f"{d.ranked[0].confidence:.2f}/{d.ranked[0].confidence - d.ranked[1].confidence:.2f}" for d in labelled))
 
     if "--dry-run" in argv:
         return 0
