@@ -30,6 +30,31 @@ model.fit(X_train, y_train)
 print("f1_macro:", f1_score(y_test, model.predict(X_test), average="macro"))
 ```
 
+Same thing with embeddings: only the feature builder changes (same split, same structured columns).
+
+```python
+from app.uc4.ml.embed_features import build_embed_features
+
+model = Pipeline([("features", build_embed_features()), ("clf", LinearSVC())])
+model.fit(X_train, y_train)
+print("f1_macro:", f1_score(y_test, model.predict(X_test), average="macro"))
+```
+
+The first run downloads the model (`BAAI/bge-small-en-v1.5`, about 65 MB) into `backend/.cache/fastembed/`; vectors are cached in
+`backend/.cache/embeddings/`, so later runs don't embed again (both folders are git-ignored). Embeddings are not >= 0, so use
+LR / SVM with them, not MultinomialNB. Check the class signal: `.\.venv\Scripts\python.exe scripts\inspect_embeddings.py`.
+
+### TF-IDF vs embeddings
+
+| | TF-IDF (`build_features`) | Embeddings (`build_embed_features`) |
+|---|---|---|
+| Captures | Exact words and codes (`err_rate_limited`, `499`), character pieces | Meaning: "did not respond" is close to "timed out" even with no shared words |
+| Size | Sparse, about 1,750 text columns, grows with the vocabulary | Dense, 384 text columns, fixed |
+| Cost | Fits in milliseconds, nothing to download | 65 MB model, about 0.4 s to embed this dataset once, then cached |
+| Wins when | Wording is fixed and codes decide (this synthetic data) | Wording varies: new services, paraphrased or unseen messages |
+
+On the train split, 1-nearest-neighbour accuracy using the message alone is 0.874 for TF-IDF and 0.852 for embeddings (majority class: 0.178).
+
 Tuning: `GridSearchCV(model, {"features__text_word__ngram_range": [(1, 1), (1, 2)]}, cv=GroupKFold(5), scoring="f1_macro").fit(X_train, y_train, groups=get_groups("train"))`.
 Never tune on the test split, and don't commit fitted models.
 
