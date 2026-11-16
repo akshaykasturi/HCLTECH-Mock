@@ -1,0 +1,20 @@
+{"query": "What is the current rate limit per API key?", "gold_doc_ids": ["rate-limits", "changelog", "integration-guide"], "note": "100/min; the deprecated v1 page (60/min) is deliberately not gold"}
+{"query": "How long is a bearer token valid before it expires?", "gold_doc_ids": ["authentication", "errors", "troubleshooting", "integration-guide"], "note": "TTL 3600 seconds"}
+{"query": "Which scope do I need to call POST /v1/refunds?", "gold_doc_ids": ["authorization-and-scopes", "endpoints/refunds"], "note": "refunds:write"}
+{"query": "Why does POST /v1/payments return 403 ERR_IP_NOT_ALLOWED?", "gold_doc_ids": ["authorization-and-scopes", "errors", "troubleshooting"], "note": "source IP not on the merchant allowlist"}
+{"query": "What does 415 ERR_UNSUPPORTED_MEDIA_TYPE mean and how do I fix it?", "gold_doc_ids": ["errors", "troubleshooting"], "note": "body not JSON; check Content-Type"}
+{"query": "What is the difference between a 504 and a 499?", "gold_doc_ids": ["timeouts-and-retries", "errors", "troubleshooting"], "note": "504 = gateway gave up after 10 s; 499 = client closed first"}
+{"query": "Which status codes should I retry, and with what backoff?", "gold_doc_ids": ["timeouts-and-retries", "integration-guide"], "note": "429/502/503/504, exponential backoff from 1 s plus jitter, max 5 attempts"}
+{"query": "Since when is currency required on POST /v1/orders?", "gold_doc_ids": ["changelog", "endpoints/orders", "errors", "integration-guide"], "note": "release 2.3, 2026-09-01"}
+{"query": "Which routes are affected if bank-gateway goes down?", "gold_doc_ids": ["architecture-and-dependencies"], "note": "payments, refunds, orders (blast radius 3)"}
+{"query": "The v1 docs say 60 requests per minute. Is that still the limit?", "gold_doc_ids": ["legacy/rate-limits-v1", "rate-limits", "changelog"], "note": "conflict check: deprecated 60/min vs current 100/min"}
+{"query": "Why does my nvp_test_ key get 401 ERR_AUTH_INVALID_KEY?", "gold_doc_ids": ["authentication", "overview", "errors", "troubleshooting"], "note": "test key used against production"}
+{"query": "How do I recognise a retry storm?", "gold_doc_ids": ["rate-limits", "timeouts-and-retries", "troubleshooting"], "note": "repeated Idempotency-Key values and earlier timeouts before the 429s"}
+{"query": "What client timeout should I configure?", "gold_doc_ids": ["timeouts-and-retries", "integration-guide"], "note": "at least 15000 ms, longer than the 10000 ms gateway timeout"}
+{"query": "What is the p95 latency target for payments?", "gold_doc_ids": ["sla-and-status"], "note": "under 1500 ms; tests the HTML doc"}
+{"query": "What should I check first for a 500 error after a deploy?", "gold_doc_ids": ["troubleshooting", "errors"], "note": "change history for a deploy in the 20 minutes before"}
+{"query": "My login credential stops working after about an hour. Why?", "gold_doc_ids": ["authentication", "errors", "troubleshooting", "integration-guide"], "note": "paraphrase of token TTL 3600 s"}
+{"query": "The shop keeps telling our app to slow down. What is the allowance?", "gold_doc_ids": ["rate-limits", "troubleshooting"], "note": "paraphrase of 429 and 100 requests per minute"}
+{"query": "Our side hangs up before the server has answered. What is going on?", "gold_doc_ids": ["timeouts-and-retries", "errors", "troubleshooting"], "note": "paraphrase of 499 client closed request"}
+{"query": "Does NovaPay send webhooks for payment events?", "gold_doc_ids": [], "note": "no answer in the docs; search should be weak and the gate should stop it"}
+{"query": "How much does each API call cost?", "gold_doc_ids": [], "note": "no answer in the docs; search should be weak and the gate should stop it"}

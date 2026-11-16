@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Service levels and status page</title>
+<meta name="version" content="2.3"><meta name="status" content="current"><meta name="updated" content="2026-09-01">
+<style>body{font-family:sans-serif}</style><script>window.statusWidget = true;</script></head>
+<body><nav>Home | Docs | Status</nav>
+<h1>Service levels and status page</h1>
+<p>NovaPay targets 99.9% monthly availability for every production route, measured at the gateway.</p>
+<h2>Latency objectives</h2>
+<ul><li>Read routes (GET): p95 under 300 ms.</li><li>Order and refund creation: p95 under 1000 ms.</li><li>Payments: p95 under 1500 ms, because the external bank gateway adds latency.</li></ul>
+<h2>Error budget</h2>
+<p>An endpoint error rate above 5% for 5 consecutive minutes opens an incident. Client errors (4xx except 429 during an incident) do not count against the budget.</p>
+<h2>Incident communication</h2>
+<p>Incidents are posted on the status page within 10 minutes with the affected routes and dependencies. Merchants should quote the X-Correlation-Id of failing requests when contacting support.</p>
+<footer>(c) NovaPay, fictional company for the HCLTech hackathon dataset</footer>
+</body></html>

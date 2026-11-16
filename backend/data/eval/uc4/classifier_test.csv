@@ -1,0 +1,304 @@
+case_id,is_focal,text,label
+UC4-0002,True,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0002,False,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0002,False,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0002,False,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0002,False,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0002,False,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0002,False,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0002,False,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0002,False,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0002,False,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0002,False,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0002,False,status=401 route=GET /v1/orders/{id} code=ERR_AUTH_TOKEN_EXPIRED message=Bearer token expired has_www_authenticate,authentication
+UC4-0006,True,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0006,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0006,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0006,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0006,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0006,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0006,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0006,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0006,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0006,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0006,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0006,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0008,True,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0008,False,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0008,False,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0008,False,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0008,False,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0008,False,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0008,False,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0008,False,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0008,False,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0008,False,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0008,False,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0008,False,status=401 route=POST /v1/orders code=ERR_AUTH_INVALID_KEY message=API key not recognised for this environment,authentication
+UC4-0012,True,status=401 route=POST /v1/orders code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0012,False,status=401 route=POST /v1/orders code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0012,False,status=401 route=POST /v1/orders code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0014,True,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0014,False,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0014,False,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0014,False,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0014,False,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0014,False,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0014,False,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0014,False,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0014,False,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0014,False,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0014,False,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0014,False,status=403 route=GET /v1/orders/{id} code=ERR_FORBIDDEN_SCOPE message=Token lacks required scope 'orders:read',authorization
+UC4-0018,True,status=403 route=GET /v1/search code=ERR_FORBIDDEN message=Forbidden,authorization
+UC4-0018,False,status=403 route=GET /v1/search code=ERR_FORBIDDEN message=Forbidden,authorization
+UC4-0018,False,status=403 route=GET /v1/search code=ERR_FORBIDDEN message=Forbidden,authorization
+UC4-0018,False,status=403 route=GET /v1/search code=ERR_FORBIDDEN message=Forbidden,authorization
+UC4-0018,False,status=403 route=GET /v1/search code=ERR_FORBIDDEN message=Forbidden,authorization
+UC4-0020,True,status=403 route=POST /v1/payments code=ERR_IP_NOT_ALLOWED message=Source IP 192.0.2.118 is not allowlisted for this account,authorization
+UC4-0020,False,status=403 route=POST /v1/payments code=ERR_IP_NOT_ALLOWED message=Source IP 192.0.2.118 is not allowlisted for this account,authorization
+UC4-0020,False,status=403 route=POST /v1/payments code=ERR_IP_NOT_ALLOWED message=Source IP 192.0.2.45 is not allowlisted for this account,authorization
+UC4-0020,False,status=403 route=POST /v1/payments code=ERR_IP_NOT_ALLOWED message=Source IP 192.0.2.118 is not allowlisted for this account,authorization
+UC4-0020,False,status=403 route=POST /v1/payments code=ERR_IP_NOT_ALLOWED message=Source IP 192.0.2.118 is not allowlisted for this account,authorization
+UC4-0020,False,status=403 route=POST /v1/payments code=ERR_IP_NOT_ALLOWED message=Source IP 192.0.2.203 is not allowlisted for this account,authorization
+UC4-0020,False,status=403 route=POST /v1/payments code=ERR_IP_NOT_ALLOWED message=Source IP 192.0.2.45 is not allowlisted for this account,authorization
+UC4-0020,False,status=403 route=POST /v1/payments code=ERR_IP_NOT_ALLOWED message=Source IP 192.0.2.203 is not allowlisted for this account,authorization
+UC4-0020,False,status=403 route=POST /v1/payments code=ERR_IP_NOT_ALLOWED message=Source IP 192.0.2.45 is not allowlisted for this account,authorization
+UC4-0020,False,status=403 route=POST /v1/payments code=ERR_IP_NOT_ALLOWED message=Source IP 192.0.2.118 is not allowlisted for this account,authorization
+UC4-0020,False,status=403 route=POST /v1/payments code=ERR_IP_NOT_ALLOWED message=Source IP 192.0.2.45 is not allowlisted for this account,authorization
+UC4-0024,True,status=403 route=POST /v1/payments code=ERR_FORBIDDEN message=Forbidden,authorization
+UC4-0024,False,status=403 route=POST /v1/payments code=ERR_FORBIDDEN message=Forbidden,authorization
+UC4-0024,False,status=403 route=POST /v1/payments code=ERR_FORBIDDEN message=Forbidden,authorization
+UC4-0024,False,status=403 route=POST /v1/payments code=ERR_FORBIDDEN message=Forbidden,authorization
+UC4-0026,True,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0026,False,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0026,False,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0026,False,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0026,False,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0026,False,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0026,False,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0026,False,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0026,False,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0026,False,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0026,False,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0026,False,status=400 route=POST /v1/payments code=ERR_VALIDATION_REQUIRED_FIELD message=Field 'amount' is required,validation
+UC4-0030,True,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0030,False,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0030,False,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0030,False,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0030,False,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0030,False,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0030,False,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0030,False,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0030,False,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0030,False,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0030,False,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0030,False,status=400 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0032,True,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0032,False,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0032,False,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0032,False,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0032,False,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0032,False,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0032,False,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0032,False,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0032,False,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0032,False,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0032,False,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0032,False,status=415 route=POST /v1/refunds code=ERR_UNSUPPORTED_MEDIA_TYPE message=Content-Type 'application/xml' is not supported; use application/json,validation
+UC4-0036,True,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0036,False,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0036,False,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0036,False,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0036,False,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0036,False,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0036,False,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0036,False,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0036,False,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0036,False,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0036,False,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0036,False,status=415 route=POST /v1/orders code=ERR_VALIDATION message=Request validation failed,validation
+UC4-0038,True,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0038,False,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0038,False,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0038,False,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0038,False,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0038,False,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0038,False,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0038,False,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0038,False,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0038,False,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0038,False,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0038,False,status=429 route=GET /v1/inventory/{sku} code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0042,True,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0042,False,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0042,False,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0042,False,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0042,False,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0042,False,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0042,False,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0042,False,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0042,False,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0042,False,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0042,False,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0042,False,status=429 route=GET /v1/customers/{id} code=ERR_RATE_LIMITED message=Too many requests ratelimit_remaining=0,rate_limit
+UC4-0044,True,status=429 route=POST /v1/payments code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0044,False,status=504 route=POST /v1/payments code=ERR_UPSTREAM_TIMEOUT message=Upstream bank-gateway did not respond within 10000 ms,rate_limit
+UC4-0044,False,status=504 route=POST /v1/payments code=ERR_UPSTREAM_TIMEOUT message=Upstream bank-gateway did not respond within 10000 ms,rate_limit
+UC4-0044,False,status=429 route=POST /v1/payments code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0044,False,status=429 route=POST /v1/payments code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0044,False,status=429 route=POST /v1/payments code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0044,False,status=429 route=POST /v1/payments code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0044,False,status=429 route=POST /v1/payments code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0044,False,status=429 route=POST /v1/payments code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0044,False,status=429 route=POST /v1/payments code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0044,False,status=429 route=POST /v1/payments code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0044,False,status=429 route=POST /v1/payments code=ERR_RATE_LIMITED message=Rate limit of 100 requests/minute exceeded for API key has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0048,True,status=429 route=POST /v1/orders code=ERR_RATE_LIMITED message=Too many requests has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0048,False,status=499 route=POST /v1/orders code=none message=client closed request,rate_limit
+UC4-0048,False,status=504 route=POST /v1/orders code=ERR_UPSTREAM_TIMEOUT message=Upstream payments-svc did not respond within 10000 ms,rate_limit
+UC4-0048,False,status=499 route=POST /v1/orders code=none message=client closed request,rate_limit
+UC4-0048,False,status=429 route=POST /v1/orders code=ERR_RATE_LIMITED message=Too many requests has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0048,False,status=429 route=POST /v1/orders code=ERR_RATE_LIMITED message=Too many requests has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0048,False,status=429 route=POST /v1/orders code=ERR_RATE_LIMITED message=Too many requests has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0048,False,status=429 route=POST /v1/orders code=ERR_RATE_LIMITED message=Too many requests has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0048,False,status=429 route=POST /v1/orders code=ERR_RATE_LIMITED message=Too many requests has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0048,False,status=429 route=POST /v1/orders code=ERR_RATE_LIMITED message=Too many requests has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0048,False,status=429 route=POST /v1/orders code=ERR_RATE_LIMITED message=Too many requests has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0048,False,status=429 route=POST /v1/orders code=ERR_RATE_LIMITED message=Too many requests has_retry_after ratelimit_remaining=0,rate_limit
+UC4-0050,True,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0050,False,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0050,False,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0050,False,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0050,False,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0050,False,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0050,False,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0050,False,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0050,False,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0050,False,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0050,False,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0050,False,status=504 route=GET /v1/orders/{id} code=ERR_UPSTREAM_TIMEOUT message=Upstream orders-db did not respond within 10000 ms upstream_error=timeout,timeout
+UC4-0054,True,status=504 route=POST /v1/payments code=ERR_GATEWAY_TIMEOUT message=Gateway timeout upstream_error=timeout,timeout
+UC4-0054,False,status=504 route=POST /v1/payments code=ERR_GATEWAY_TIMEOUT message=Gateway timeout upstream_error=timeout,timeout
+UC4-0054,False,status=504 route=POST /v1/payments code=ERR_GATEWAY_TIMEOUT message=Gateway timeout upstream_error=timeout,timeout
+UC4-0054,False,status=504 route=POST /v1/payments code=ERR_GATEWAY_TIMEOUT message=Gateway timeout upstream_error=timeout,timeout
+UC4-0056,True,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0056,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0056,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0056,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0056,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0056,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0056,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0056,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0056,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0056,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0056,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0056,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0060,True,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0060,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0060,False,status=499 route=POST /v1/orders code=none message=client closed request,timeout
+UC4-0062,True,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0062,False,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0062,False,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0062,False,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0062,False,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0062,False,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0062,False,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0062,False,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0062,False,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0062,False,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0062,False,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0062,False,status=503 route=GET /v1/inventory/{sku} code=ERR_DEPENDENCY_UNAVAILABLE message=Dependency inventory-db unavailable: connection refused upstream_error=connection_refused,dependency
+UC4-0066,True,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0066,False,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0066,False,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0066,False,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0066,False,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0066,False,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0066,False,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0066,False,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0066,False,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0066,False,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0066,False,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0066,False,status=503 route=POST /v1/refunds code=ERR_DEPENDENCY_UNAVAILABLE message=Service unavailable upstream_error=connection_refused,dependency
+UC4-0068,True,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0068,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0068,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0068,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0068,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0068,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0068,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0068,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0068,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0068,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0068,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0068,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Upstream payments-svc: TLS handshake with bank-gateway failed: certificate has expired upstream_error=tls_handshake_failed,dependency
+UC4-0072,True,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0072,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0072,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0072,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0072,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0072,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0072,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0072,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0072,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0072,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0072,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0072,False,status=502 route=POST /v1/refunds code=ERR_BAD_GATEWAY message=Bad gateway upstream_error=bad_response,dependency
+UC4-0074,True,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0074,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0074,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0074,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0074,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0074,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0074,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0074,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0074,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0074,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0074,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0074,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=TypeError: Cannot read properties of undefined (reading 'lineItems'),server_error
+UC4-0078,True,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0078,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0078,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0078,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0078,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0078,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0078,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0078,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0078,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0078,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0078,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0078,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0080,True,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=335)",server_error
+UC4-0080,False,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=169)",server_error
+UC4-0080,False,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=144)",server_error
+UC4-0080,False,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=134)",server_error
+UC4-0080,False,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=252)",server_error
+UC4-0080,False,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=319)",server_error
+UC4-0080,False,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=165)",server_error
+UC4-0080,False,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=101)",server_error
+UC4-0080,False,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=320)",server_error
+UC4-0080,False,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=357)",server_error
+UC4-0080,False,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=226)",server_error
+UC4-0080,False,"status=500 route=POST /v1/orders code=ERR_DB_POOL_EXHAUSTED message=Timed out acquiring DB connection: pool exhausted (max=50, waiting=319)",server_error
+UC4-0084,True,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0084,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0084,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0084,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0084,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0084,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0084,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0084,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0084,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0084,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0084,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0084,False,status=500 route=GET /v1/orders/{id} code=ERR_INTERNAL message=Internal server error,server_error
+UC4-0087,True,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0087,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0087,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0087,False,status=401 route=GET /v1/customers/{id} code=ERR_UNAUTHORIZED message=Unauthorized,authentication
+UC4-0088,True,status=504 route=GET /v1/inventory/{sku} code=ERR_GATEWAY_TIMEOUT message=Gateway timeout,timeout
+UC4-0089,True,status=429 route=GET /v1/search code=ERR_RATE_LIMITED message=Too many requests,rate_limit
+UC4-0089,False,status=429 route=GET /v1/search code=ERR_RATE_LIMITED message=Too many requests,rate_limit
+UC4-0089,False,status=429 route=GET /v1/search code=ERR_RATE_LIMITED message=Too many requests,rate_limit
+UC4-0090,True,status=500 route=POST /v1/payments code=ERR_INTERNAL message=Internal server error,server_error
