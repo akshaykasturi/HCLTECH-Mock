@@ -89,3 +89,20 @@ def test_unknown_signals_are_ignored_and_none_skipped() -> None:
 def test_signals_do_not_carry_labels() -> None:
     signals = get_signals(get_case("UC4-0002"))
     assert not any(k.startswith("expected_") or k in {"split", "difficulty"} for k in signals)
+
+
+def test_near_tie_is_measured_against_the_top_cause(all_diagnoses) -> None:
+    # Old bug: causes far down the list (all near 0) counted as "tied" with each other.
+    from app.uc4.settings import get_settings
+    margin = get_settings()["rank"]["near_tie_margin"]
+    for cid, d in all_diagnoses.items():
+        top = d.ranked[0].confidence
+        tied = [r for r in d.ranked if r.near_tie]
+        assert len(tied) != 1, cid  # a tie needs at least two causes
+        for r in tied:
+            assert top - r.confidence <= margin + 1e-9, f"{cid} {r.cause}"
+
+
+def test_top_cause_is_never_unsupported(all_diagnoses) -> None:
+    for cid, d in all_diagnoses.items():
+        assert d.ranked[0].status in {"likely", "probable"}, cid
