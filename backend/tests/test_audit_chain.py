@@ -358,7 +358,9 @@ def test_secrets_never_reach_db_events_or_csv(db):
     assert headers == {"Authorization": "<redacted>", "X-Api-Key": "<redacted>"}
     assert stored["evidence"][0]["data"]["password"] == "<redacted>"
     assert stored["evidence"][0]["data"]["token_age_s"] == 4000  # useful numbers are kept
-    assert "nvp_live_<key>" in stored["report"]["summary"]  # key type kept, secret part hidden
+    # Masked with redact.mask_text: key type kept, secret part hidden; same markers as redact.py.
+    summary = stored["report"]["summary"]
+    assert summary == "Client <EMAIL> at 203.0.113.x sent Bearer <TOKEN> with key nvp_live_<KEY>."
 
     outputs = {
         "database file": raw_db_text(db),

@@ -5,17 +5,16 @@ Every response uses one envelope:
     error:   {"ok": false, "data": null, "error": {"code": "...", "message": "..."}}
 
 What this module does NOT do: it never diagnoses anything itself. POST /api/diagnose calls
-app.uc4.pipeline.diagnose (owned by the pipeline team). Until that exists, the endpoint answers
-503 DIAGNOSIS_NOT_READY; the rest of the API keeps working.
+app.uc4.diagnose.diagnose (owned by the pipeline team) and checks the returned models.Diagnosis
+before saving it. If the pipeline cannot be imported, the endpoint answers 503 DIAGNOSIS_NOT_READY;
+the rest of the API keeps working.
 
 Reused modules (not modified): store.py (cases, logs), audit.py (SQLite audit log, masking before
-storage), redact.py (masking reviewer notes), models.py (Case; Diagnosis when it exists).
+storage), redact.py (masking reviewer notes), models.py (Case, Diagnosis), diagnose.py (the pipeline).
 """
 from __future__ import annotations
 
 import asyncio
-import importlib
-import inspect
 import logging
 import os
 import re
@@ -29,7 +28,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.uc4 import audit, store
-from app.uc4.models import Case
+from app.uc4.models import Case, Diagnosis
 from app.uc4.redact import mask_text
 from app.uc4.settings import BACKEND_DIR
 
@@ -37,12 +36,8 @@ logger = logging.getLogger(__name__)
 
 ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$"
 MAX_NOTE_CHARS = audit.MAX_NOTE_CHARS
-DIAGNOSIS_FIELDS = (
-    "diagnosis_id", "created_at", "case_id", "route", "onset_ts", "outcome", "failure_class",
-    "class_confidence", "causes", "evidence", "missing_info", "report", "report_findings",
-    "generator", "trace",
-)
-OUTCOMES = ("RECOMMEND", "CLARIFY", "ESCALATE")
+DIAGNOSIS_FIELDS = tuple(Diagnosis.model_fields)  # the pipeline team's final contract (models.py)
+OUTCOMES = ("RECOMMEND", "CLARIFY")  # escalation is the separate escalate flag, never an outcome
 # Case fields that are evaluation answers or bookkeeping: never shown, never given to the pipeline.
 LABEL_FIELDS = ("split", "difficulty", "expected_class", "expected_cause", "expected_first_check",
                 "expected_outcome", "requires_escalation", "culprit_dependency", "culprit_client",
@@ -138,7 +133,8 @@ class DiagnoseRequest(BaseModel):
 
 
 class FeedbackRequest(BaseModel):
-    """A reviewer verdict. 'annotate' needs a note; cause_id must name a cause of the diagnosis."""
+    """A reviewer verdict. 'annotate' needs a note; cause_id, if given, must be a ranked[].cause of the
+    diagnosis (e.g. "token_expired"); without cause_id the verdict is about the whole diagnosis."""
 
     model_config = ConfigDict(extra="forbid")
     verdict: Literal["confirm", "reject", "annotate"]
@@ -156,7 +152,8 @@ class FeedbackRequest(BaseModel):
 
 class DiagnosisEnvelope(BaseModel):
     ok: Literal[True] = True
-    data: dict[str, Any] = Field(description="The full Diagnosis (schema owned by the pipeline), secrets masked")
+    data: Diagnosis = Field(description="The full Diagnosis (schema owned by the pipeline, models.py), "
+                                        "secrets masked")
     error: None = None
 
 
@@ -228,33 +225,20 @@ PipelineFn = Callable[[Case], Any]
 
 
 def resolve_pipeline() -> tuple[Optional[PipelineFn], str]:
-    """Find app.uc4.pipeline.diagnose. Returns (callable taking a Case, status text).
+    """The team's pipeline, app.uc4.diagnose.diagnose(case_or_id) -> Diagnosis. Returns (callable, status).
 
-    Accepted signatures: diagnose(case) or diagnose(case_id) with one required parameter.
-    Anything else is reported as not ready rather than guessed at.
+    Imported here rather than at the top of the file: if the pipeline (or something it imports) is
+    broken, /health reports pipeline not_ready and /api/diagnose answers 503, but the API keeps running.
     """
     try:
-        module = importlib.import_module("app.uc4.pipeline")
+        from app.uc4.diagnose import diagnose
     except ModuleNotFoundError as exc:
-        if exc.name in ("app.uc4.pipeline",):
-            return None, "pipeline module not available yet"
         return None, f"pipeline cannot be imported (missing module {exc.name})"
     except Exception as exc:  # the pipeline's own import failed; report, don't crash the API
         return None, f"pipeline cannot be imported ({exc.__class__.__name__})"
-    fn = getattr(module, "diagnose", None)
-    if not callable(fn):
-        return None, "pipeline has no diagnose() function"
-    try:
-        params = [p for p in inspect.signature(fn).parameters.values()
-                  if p.default is inspect.Parameter.empty
-                  and p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY)]
-    except (TypeError, ValueError):
-        return None, "diagnose() signature cannot be inspected"
-    if len(params) == 1 and params[0].name == "case":
-        return (lambda case: fn(**{"case": case})), "ready"
-    if len(params) == 1 and params[0].name == "case_id":
-        return (lambda case: fn(**{"case_id": case.case_id})), "ready"
-    return None, "diagnose() signature is not the agreed diagnose(case) or diagnose(case_id)"
+    if not callable(diagnose):
+        return None, "app.uc4.diagnose has no diagnose() function"
+    return diagnose, "ready"
 
 
 def get_pipeline() -> Optional[PipelineFn]:
@@ -263,13 +247,6 @@ def get_pipeline() -> Optional[PipelineFn]:
     if fn is None:
         logger.debug("diagnosis pipeline not ready: %s", status)
     return fn
-
-
-def _diagnosis_model() -> Optional[type[BaseModel]]:
-    """The pipeline team's Diagnosis model from models.py, if it exists yet."""
-    module = importlib.import_module("app.uc4.models")
-    model = getattr(module, "Diagnosis", None)
-    return model if isinstance(model, type) and issubclass(model, BaseModel) else None
 
 
 # ---------- helpers ----------
@@ -289,41 +266,38 @@ def strip_labels(case: Case) -> Case:
 
 
 def check_diagnosis(result: Any, case_id: str) -> dict[str, Any]:
-    """Turn the pipeline's result into a dict and check the agreed contract; raise ApiError if broken."""
-    model = _diagnosis_model()
+    """Validate the pipeline's result with models.Diagnosis, check the contract, return it as JSON data.
+
+    Raises ApiError 502 DIAGNOSIS_INVALID if the result is not a valid Diagnosis for this case.
+    """
     try:
-        if model is not None:
-            result = model.model_validate(result)
-        if isinstance(result, BaseModel):
-            result = result.model_dump(mode="json")
+        data = Diagnosis.model_validate(result).model_dump(mode="json")
     except Exception as exc:
         logger.warning("pipeline returned an invalid Diagnosis (%s)", exc.__class__.__name__)
         raise ApiError(502, "DIAGNOSIS_INVALID", "The diagnosis service returned an invalid result.") from None
-    if not isinstance(result, dict):
-        raise ApiError(502, "DIAGNOSIS_INVALID", "The diagnosis service returned an invalid result.")
 
-    problems = [f"missing field {name}" for name in DIAGNOSIS_FIELDS if name not in result]
-    diagnosis_id = result.get("diagnosis_id")
-    if not isinstance(diagnosis_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/#-]{0,199}", diagnosis_id):
-        problems.append("diagnosis_id is missing or not a safe identifier")
-    if result.get("case_id") != case_id:
+    problems = []
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/#-]{0,199}", data["diagnosis_id"]):
+        problems.append("diagnosis_id is not a safe identifier")
+    if data["case_id"] != case_id:
         problems.append("case_id does not match the request")
-    if result.get("outcome") not in OUTCOMES:
-        problems.append("outcome is not RECOMMEND, CLARIFY or ESCALATE")
-    if result.get("outcome") == "CLARIFY" and result.get("report") is not None:
-        problems.append("report must be null when outcome is CLARIFY")
-    for name in ("causes", "evidence", "missing_info", "report_findings", "trace"):
-        if name in result and not isinstance(result[name], list):
-            problems.append(f"{name} must be a list")
+    if data["outcome"] == "CLARIFY" and (data["ranked"] or data["failure_class"] is not None or data["escalate"]):
+        problems.append("a CLARIFY diagnosis must not claim a cause or escalate")
+    causes = [c["cause"] for c in data["ranked"]]
+    if len(set(causes)) != len(causes):
+        problems.append("ranked causes must be unique")
+    if not all(re.fullmatch(ID_PATTERN, c) for c in causes):
+        problems.append("ranked cause names must be safe identifiers (reviewers send them as cause_id)")
     if problems:
         logger.warning("pipeline Diagnosis breaks the contract: %s", "; ".join(problems))
         raise ApiError(502, "DIAGNOSIS_INVALID", "The diagnosis service returned an invalid result.")
-    return result
+    return data
 
 
 def _cause_ids(diagnosis: dict[str, Any]) -> set[str]:
-    causes = diagnosis.get("causes") or []
-    return {c["cause_id"] for c in causes if isinstance(c, dict) and isinstance(c.get("cause_id"), str)}
+    """What a reviewer may send as cause_id: the ranked[].cause names of the saved diagnosis."""
+    ranked = diagnosis.get("ranked") or []
+    return {c["cause"] for c in ranked if isinstance(c, dict) and isinstance(c.get("cause"), str)}
 
 
 def _storage_error(exc: Exception) -> ApiError:
@@ -364,10 +338,10 @@ def list_cases(source: CaseSource = Depends(get_case_source)) -> JSONResponse:
 
 @router.post(
     "/diagnose", status_code=201, response_model=DiagnosisEnvelope, summary="Diagnose a case",
-    description="Runs the team's diagnosis pipeline (app.uc4.pipeline.diagnose) on the case, checks the result "
-                "against the agreed Diagnosis contract, saves it to the audit log (secrets masked) and returns "
-                "the saved Diagnosis. No result is ever invented: if the pipeline is not available the answer is "
-                "503 DIAGNOSIS_NOT_READY.",
+    description="Runs the team's diagnosis pipeline (app.uc4.diagnose.diagnose) on the case (labels removed), "
+                "checks the result against models.Diagnosis (outcome RECOMMEND or CLARIFY, escalate flag, "
+                "ranked causes), saves it to the audit log (secrets masked) and returns the saved Diagnosis. "
+                "No result is ever invented: if the pipeline cannot be loaded the answer is 503 DIAGNOSIS_NOT_READY.",
     responses=_error_docs(
         (404, "CASE_NOT_FOUND"), (409, "DIAGNOSIS_CONFLICT: diagnosis_id already saved"),
         (422, "VALIDATION_ERROR: bad request body"),
@@ -439,7 +413,8 @@ def get_diagnosis(diagnosis_id: str = PathParam(pattern=ID_PATTERN),
     "/diagnoses/{diagnosis_id}/feedback", status_code=201, response_model=FeedbackEnvelope,
     summary="Add reviewer feedback",
     description="Appends one reviewer verdict (confirm / reject / annotate). Earlier feedback is never changed. "
-                "'annotate' needs a note; cause_id, if given, must be a cause_id of this diagnosis; notes are "
+                "'annotate' needs a note; cause_id, if given, must be one of this diagnosis's ranked[].cause "
+                "values (omit it for feedback on the whole diagnosis); notes are "
                 f"at most {MAX_NOTE_CHARS} characters and secrets in them are masked before saving.",
     responses=_error_docs((404, "DIAGNOSIS_NOT_FOUND"),
                           (422, "VALIDATION_ERROR (bad body) or UNKNOWN_CAUSE (cause_id not in this diagnosis)"),

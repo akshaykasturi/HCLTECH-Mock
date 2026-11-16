@@ -1,8 +1,9 @@
 """Tests for the UC4 FastAPI backend (app/main.py, app/uc4/api.py).
 
-The real diagnosis pipeline (app/uc4/pipeline.py) does not exist yet. Tests marked MOCK PIPELINE
-inject a fake diagnose() through FastAPI dependency overrides; its output is test data only and
-is never produced by the application itself. "Pipeline unavailable" tests use the real lookup.
+Two kinds of diagnose tests:
+- REAL PIPELINE (section I): the team's app.uc4.diagnose.diagnose on real cases from the dataset.
+- MOCK PIPELINE: a fake diagnose() injected through FastAPI dependency overrides, to test error paths
+  and contract checks. Its output is test data in the models.Diagnosis shape, never produced by the app.
 
 Every test uses its own temporary SQLite database. Fake secrets below are made up for these tests.
 """
@@ -17,13 +18,13 @@ from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
-from pydantic import BaseModel
 
 from app import main as main_module
 from app.main import create_app
-from app.uc4 import api, audit, models
+from app.uc4 import api, audit
+from app.uc4 import diagnose as diagnose_module
 from app.uc4.api import ApiSettings, CaseSource, get_case_source, get_pipeline
-from app.uc4.models import Case
+from app.uc4.models import Case, Diagnosis
 from app.uc4.redact import find_leaks
 
 FAKE_JWT = "eyJhbGciOiJub25lIn0.eyJzdWIiOiJhcGktdGVzdCJ9.ZmFrZXNpZw"
@@ -49,38 +50,58 @@ FAKE_CASES = {c.case_id: c for c in (make_case("UC4-0050"), make_case("UC4-0002"
 
 
 def make_diagnosis(case, diagnosis_id="dx-0001", outcome="RECOMMEND", **extra) -> dict:
-    """MOCK PIPELINE output in the agreed Diagnosis shape (illustrative values, not a real diagnosis)."""
-    report = None if outcome == "CLARIFY" else {
-        "summary": "Likely a slow orders-db.",
-        "causes": [{"cause_id": "upstream_dependency_slow", "explanation": "orders-db p95 rose sharply.",
-                    "citations": [{"evidence_id": "metric:service:orders-db", "quote": "p95 2400 ms"}]}],
-        "verification_steps": ["Open the orders-db latency dashboard for the same minutes."],
-        "escalation": None,
+    """MOCK PIPELINE output in the final models.Diagnosis shape (illustrative values, not a real diagnosis).
+
+    On CLARIFY no cause is claimed (ranked empty, failure_class None), as the real pipeline does.
+    """
+    claim = outcome == "RECOMMEND"
+    ranked = [
+        {"rank": 1, "cause": "upstream_dependency_slow", "failure_class": "timeout", "confidence": 0.71,
+         "status": "probable", "near_tie": False,
+         "supporting": [{"signal": "dependency_latency_spike", "present": True, "ratio": 6.2,
+                         "evidence_ids": ["metric:service:orders-db"]}],
+         "contradicting": [], "confirming_seen": ["dependency_latency_spike"], "confirming_missing": [],
+         "first_check": "Check orders-db p95 latency.", "escalate": False, "missing_info": []},
+        {"rank": 2, "cause": "client_timeout_too_low", "failure_class": "timeout", "confidence": 0.18,
+         "status": "unsupported", "near_tie": False, "supporting": [],
+         "contradicting": [{"signal": "client_timeout_header_low", "present": False, "ratio": 0.2,
+                            "evidence_ids": ["traffic:window"]}],
+         "first_check": "Compare X-Client-Timeout-Ms with p95.", "escalate": False},
+    ] if claim else []
+    report = {
+        "case_id": case.case_id, "outcome": outcome,
+        "summary": "Likely a slow orders-db." if claim else "More information is needed.",
+        "causes": [{"cause": "upstream_dependency_slow", "likelihood": "probable",
+                    "explanation": "orders-db p95 rose sharply.",
+                    "supporting": [{"evidence_id": "metric:service:orders-db", "quote": "p95 2400 ms"}]}]
+        if claim else [],
+        "verification_steps": [{"action": "Open the orders-db latency dashboard for the same minutes.",
+                                "why": "Shows whether the spike matches the onset.",
+                                "cites": ["metric:service:orders-db"]}] if claim else [],
+        "escalation": {"needed": False}, "missing_info": [] if claim else ["dependency metrics"],
     }
     diagnosis = {
-        "diagnosis_id": diagnosis_id, "created_at": "2026-11-16T10:00:00.000Z", "case_id": case.case_id,
-        "route": case.route, "onset_ts": "2026-10-15T05:17:22.435Z", "outcome": outcome,
-        "failure_class": "timeout", "class_confidence": 0.82,
-        "causes": [
-            {"cause_id": "upstream_dependency_slow", "class": "timeout", "confidence": 0.71, "status": "probable",
-             "supporting": ["metric:service:orders-db"], "contradicting": [], "missing_info": [],
-             "first_check": "Check orders-db p95 latency.", "escalate": False, "escalate_reason": None,
-             "near_tie": False},
-            {"cause_id": "client_timeout_too_low", "class": "timeout", "confidence": 0.18, "status": "unsupported",
-             "supporting": [], "contradicting": ["traffic:window"], "missing_info": [],
-             "first_check": "Compare X-Client-Timeout-Ms with p95.", "escalate": False, "escalate_reason": None,
-             "near_tie": False},
-        ],
+        "diagnosis_id": diagnosis_id, "created_at": "2026-11-16T10:00:00Z", "case_id": case.case_id,
+        "route": case.route, "onset_ts": "2026-10-15T05:17:22.435000Z", "outcome": outcome, "escalate": False,
+        "failure_class": "timeout" if claim else None, "class_confidence": 0.89 if claim else None,
+        "ranked": ranked, "alternatives": [], "tell_apart": None,
         "evidence": [{"id": "metric:service:orders-db", "kind": "metric",
                       "text": "orders-db p95 2400 ms vs 180 ms baseline", "data": {"p95_ms": 2400.0}},
-                     {"id": "doc:timeouts-and-retries#2", "kind": "doc", "text": "Gateway timeout is 10000 ms.",
-                      "data": {}}],
-        "missing_info": [], "report": report,
-        "report_findings": [{"code": "NUMBERS_OK", "severity": "info", "message": "All numbers match evidence."}],
-        "generator": "template", "trace": [{"step": "evidence", "ms": 12.5, "detail": {}}],
+                     {"id": "traffic:window", "kind": "traffic", "text": "120 requests in the window",
+                      "data": {"requests": 120}}],
+        "missing_info": [] if claim else ["dependency metrics"], "report": report,
+        "report_findings": [{"code": "NUMBERS_OK", "severity": "info", "message": "All numbers match evidence.",
+                             "where": "summary"}],
+        "groundedness": 1.0, "generator": "template",
+        "trace": [{"step": "collect_evidence", "ms": 12.5, "detail": "2 items, 0 missing"}],
     }
     diagnosis.update(extra)
     return diagnosis
+
+
+def as_json(diagnosis) -> dict:
+    """What the API returns for a valid Diagnosis: models.Diagnosis dumped with mode="json"."""
+    return Diagnosis.model_validate(diagnosis).model_dump(mode="json")
 
 
 class FakePipeline:
@@ -145,13 +166,25 @@ def diagnose_ok(client, app, case_id="UC4-0050", diagnosis_id="dx-0001", **extra
 
 # ---------- A. startup ----------
 
-def test_app_imports_and_starts_without_pipeline(client):
+def test_app_starts_with_the_real_pipeline(client):
     assert main_module.app.title == "UC4 API failure diagnosis"
     fn, status = api.resolve_pipeline()
-    assert fn is None and status == "pipeline module not available yet"  # real lookup, no pipeline.py
+    assert fn is diagnose_module.diagnose and status == "ready"  # app.uc4.diagnose, not the old pipeline.py
     data = assert_envelope_ok(client.get("/health"))
-    assert data == {"api": "up", "database": "up", "pipeline": "not_ready",
-                    "pipeline_detail": "pipeline module not available yet"}
+    assert data == {"api": "up", "database": "up", "pipeline": "ready", "pipeline_detail": "ready"}
+
+
+def test_broken_pipeline_import_is_reported_not_fatal(client, monkeypatch, settings):
+    """If app.uc4.diagnose cannot be imported, /health says not_ready and /api/diagnose answers 503."""
+    monkeypatch.setitem(sys.modules, "app.uc4.diagnose", None)  # makes the import fail
+    fn, status = api.resolve_pipeline()
+    assert fn is None and status.startswith("pipeline cannot be imported")
+    health = assert_envelope_ok(client.get("/health"))
+    assert health["pipeline"] == "not_ready" and health["api"] == "up"
+    error = assert_envelope_error(client.post("/api/diagnose", json={"case_id": "UC4-0050"}), 503,
+                                  "DIAGNOSIS_NOT_READY")
+    assert error["message"] == "The diagnosis service is not ready yet."
+    assert audit.list_events(settings.audit_db_path) == []  # nothing invented, nothing saved
 
 
 def test_routes_are_registered(app):
@@ -236,16 +269,22 @@ def test_diagnose_with_mock_pipeline(client, app, settings):
     """MOCK PIPELINE: the API runs, checks, saves and returns the pipeline's Diagnosis."""
     pipeline = use_pipeline(app, FakePipeline(lambda case: make_diagnosis(case)))
     data = assert_envelope_ok(client.post("/api/diagnose", json={"case_id": "UC4-0050"}), 201)
-    assert data == make_diagnosis(FAKE_CASES["UC4-0050"])  # every field, evidence and citation kept
+    assert data == as_json(make_diagnosis(FAKE_CASES["UC4-0050"]))  # every field, evidence and citation kept
     assert audit.get_diagnosis(settings.audit_db_path, "dx-0001") == data
     given = pipeline.calls[0]
     assert given.case_id == "UC4-0050" and given.expected_cause is None and given.summary is None
     assert given.difficulty is None  # labels stripped before the pipeline sees the case
 
 
-def test_diagnose_clarify_outcome_with_null_report(client, app):
-    data = diagnose_ok(client, app, outcome="CLARIFY", missing_info=["dependency metrics"])
-    assert data["outcome"] == "CLARIFY" and data["report"] is None
+def test_diagnose_clarify_outcome_claims_no_cause(client, app):
+    data = diagnose_ok(client, app, outcome="CLARIFY")
+    assert data["outcome"] == "CLARIFY" and data["ranked"] == [] and data["failure_class"] is None
+    assert data["escalate"] is False and data["missing_info"] == ["dependency metrics"]
+
+
+def test_diagnose_report_may_be_null(client, app):
+    data = diagnose_ok(client, app, outcome="CLARIFY", report=None)
+    assert data["report"] is None
 
 
 @pytest.mark.parametrize("body", [{}, {"case_id": ""}, {"case_id": "UC4 0050"}, {"case_id": "../etc"},
@@ -262,8 +301,8 @@ def test_diagnose_unknown_case(client, app):
     assert pipeline.calls == []
 
 
-def test_diagnose_without_pipeline_returns_503(client, settings):
-    """Real behaviour today: app/uc4/pipeline.py does not exist."""
+def test_diagnose_without_pipeline_returns_503(client, app, settings):
+    use_pipeline(app, None)  # get_pipeline found nothing
     error = assert_envelope_error(client.post("/api/diagnose", json={"case_id": "UC4-0050"}), 503,
                                   "DIAGNOSIS_NOT_READY")
     assert error["message"] == "The diagnosis service is not ready yet."
@@ -286,11 +325,21 @@ def test_pipeline_timeout(client, app, settings):
     assert audit.list_events(settings.audit_db_path) == []
 
 
+def _ranked_with(d, **change):
+    return {**d, "ranked": [{**d["ranked"][0], **change}, *d["ranked"][1:]]}
+
+
 @pytest.mark.parametrize("broken", [
-    lambda d: {k: v for k, v in d.items() if k != "causes"},          # missing field
+    lambda d: {k: v for k, v in d.items() if k != "outcome"},         # missing required field
+    lambda d: {k: v for k, v in d.items() if k != "escalate"},        # escalate flag is required
     lambda d: {**d, "case_id": "UC4-0002"},                            # wrong case
     lambda d: {**d, "outcome": "MAYBE"},                               # bad outcome
-    lambda d: {**d, "outcome": "CLARIFY"},                             # CLARIFY with a report
+    lambda d: {**d, "outcome": "ESCALATE"},                            # escalation is a flag, not an outcome
+    lambda d: {**d, "outcome": "CLARIFY"},                             # CLARIFY that still claims causes
+    lambda d: {**d, "class_confidence": "very"},                       # wrong type
+    lambda d: _ranked_with(d, status="confirmed"),                     # causes are never "confirmed"
+    lambda d: _ranked_with(d, cause="client_timeout_too_low"),         # duplicate cause names
+    lambda d: _ranked_with(d, cause="bad cause name"),                 # unusable as a feedback cause_id
     lambda d: {**d, "evidence": "not a list"},
     lambda d: {**d, "diagnosis_id": "bad id"},
     lambda d: "not a diagnosis",
@@ -301,25 +350,13 @@ def test_diagnosis_contract_is_enforced(client, app, settings, broken):
     assert audit.list_events(settings.audit_db_path) == []
 
 
-def test_diagnosis_model_is_used_when_it_exists(client, app, monkeypatch):
-    """When the pipeline team adds models.Diagnosis, results are validated with it (stand-in here)."""
-    class Diagnosis(BaseModel):  # stand-in for the future models.Diagnosis
-        diagnosis_id: str
-        case_id: str
-        class_confidence: float
-
-    monkeypatch.setattr(models, "Diagnosis", Diagnosis, raising=False)
-    use_pipeline(app, FakePipeline(lambda case: make_diagnosis(case, class_confidence="very")))
-    assert_envelope_error(client.post("/api/diagnose", json={"case_id": "UC4-0050"}), 502, "DIAGNOSIS_INVALID")
-
-
-def test_pipeline_returning_a_pydantic_model(client, app):
-    class Result(BaseModel):
-        model_config = {"extra": "allow"}
-
-    use_pipeline(app, FakePipeline(lambda case: Result(**make_diagnosis(case))))
+def test_pipeline_returning_a_diagnosis_model(client, app):
+    """The real pipeline returns a models.Diagnosis object; the API dumps it with mode="json"."""
+    model = Diagnosis.model_validate(make_diagnosis(FAKE_CASES["UC4-0050"]))
+    use_pipeline(app, FakePipeline(lambda case: model))
     data = assert_envelope_ok(client.post("/api/diagnose", json={"case_id": "UC4-0050"}), 201)
-    assert data["causes"][0]["supporting"] == ["metric:service:orders-db"]
+    assert data == model.model_dump(mode="json")
+    assert data["ranked"][0]["supporting"][0]["evidence_ids"] == ["metric:service:orders-db"]
 
 
 def test_duplicate_diagnosis_id(client, app, settings):
@@ -361,9 +398,9 @@ def test_get_saved_diagnosis(client, app):
     saved = diagnose_ok(client, app)
     again = assert_envelope_ok(client.get("/api/diagnoses/dx-0001"))
     assert again == saved
-    assert set(again) == set(api.DIAGNOSIS_FIELDS)
-    assert again["report"]["causes"][0]["citations"] == [{"evidence_id": "metric:service:orders-db",
-                                                          "quote": "p95 2400 ms"}]
+    assert set(again) == set(api.DIAGNOSIS_FIELDS) == set(Diagnosis.model_fields)
+    assert again["report"]["causes"][0]["supporting"] == [{"evidence_id": "metric:service:orders-db",
+                                                           "quote": "p95 2400 ms"}]
 
 
 def test_get_missing_diagnosis(client):
@@ -446,7 +483,8 @@ def test_secrets_in_notes_are_masked(client, app, settings, caplog):
     for text in (data["note"], stored, settings.audit_db_path.read_bytes().decode("latin-1"), caplog.text):
         assert not any(v in text for v in FAKE_VALUES)
         assert find_leaks(text) == []
-    assert "<EMAIL>" in data["note"] or "<email>" in data["note"]
+    # Masked with redact.mask_text (same markers as redact.py).
+    assert data["note"] == "Customer <EMAIL> pasted Bearer <TOKEN> and key nvp_live_<KEY>"
 
 
 # ---------- F. response contract ----------
@@ -492,7 +530,8 @@ def test_secrets_in_pipeline_output_are_masked(client, app, settings, caplog):
     assert data["evidence"][0]["data"]["request_headers"] == {"Authorization": "<redacted>", "X-Api-Key": "<redacted>"}
 
 
-def test_logs_have_request_ids_and_no_secrets(client, caplog):
+def test_logs_have_request_ids_and_no_secrets(client, app, caplog):
+    use_pipeline(app, None)  # an error path, so the log line carries an error code
     with caplog.at_level(logging.INFO):
         response = client.post("/api/diagnose", json={"case_id": "UC4-0050"},
                                headers={"Authorization": f"Bearer {FAKE_JWT}", "X-Api-Key": FAKE_KEY})
@@ -554,35 +593,17 @@ def test_default_database_path_is_git_ignored(monkeypatch):
     assert "*.db" in gitignore
 
 
-@pytest.mark.parametrize("source,expected_status", [
-    ("def diagnose(case):\n    return case\n", "ready"),
-    ("def diagnose(case_id):\n    return case_id\n", "ready"),
-    ("def diagnose(case, options=None):\n    return case\n", "ready"),
-    ("def diagnose(a, b):\n    return a\n", "diagnose() signature is not the agreed diagnose(case) or diagnose(case_id)"),
-    ("diagnose = 3\n", "pipeline has no diagnose() function"),
-    ("import a_module_that_does_not_exist\n", "pipeline cannot be imported (missing module a_module_that_does_not_exist)"),
-])
-def test_pipeline_lookup(monkeypatch, tmp_path, source, expected_status):
-    """The real resolver, pointed at temporary pipeline modules (none of these is the real pipeline)."""
-    pkg_dir = tmp_path / "fakepkg"
-    pkg_dir.mkdir()
-    (pkg_dir / "pipeline.py").write_text(source, encoding="utf-8")
-    monkeypatch.delitem(sys.modules, "app.uc4.pipeline", raising=False)
-    import app.uc4 as uc4_pkg
-    monkeypatch.setattr(uc4_pkg, "__path__", list(uc4_pkg.__path__) + [str(pkg_dir)])
-    try:
-        fn, status = api.resolve_pipeline()
-        assert status == expected_status
-        if fn is not None:
-            assert fn(FAKE_CASES["UC4-0050"]) in (FAKE_CASES["UC4-0050"], "UC4-0050")
-    finally:
-        sys.modules.pop("app.uc4.pipeline", None)
+def test_pipeline_lookup_uses_app_uc4_diagnose(monkeypatch):
+    """The resolver returns app.uc4.diagnose.diagnose itself (no adapter), and never the old pipeline.py."""
+    monkeypatch.setitem(sys.modules, "app.uc4.pipeline", None)  # the old module must not matter
+    fn, status = api.resolve_pipeline()
+    assert status == "ready" and fn is diagnose_module.diagnose
 
 
-def test_real_pipeline_module_is_absent_in_this_branch():
-    """Guards the 503 tests: they describe today's repository, where pipeline.py is not committed."""
-    import importlib.util
-    assert importlib.util.find_spec("app.uc4.pipeline") is None
+def test_pipeline_without_diagnose_function(monkeypatch):
+    monkeypatch.setitem(sys.modules, "app.uc4.diagnose", types.SimpleNamespace(diagnose=3))
+    fn, status = api.resolve_pipeline()
+    assert fn is None and status == "app.uc4.diagnose has no diagnose() function"
 
 
 def test_audit_db_initialised_on_startup(settings):
@@ -601,3 +622,103 @@ def test_docs_loader_is_not_called_per_request(client, monkeypatch):
     client.get("/api/cases")
     client.get("/health")
     assert calls == []
+
+
+# ---------- I. REAL PIPELINE (app.uc4.diagnose.diagnose on real cases, no overrides) ----------
+# Case ids chosen by running the real pipeline: UC4-0001 RECOMMEND, UC4-0019 RECOMMEND + escalate,
+# UC4-0085 CLARIFY. The assertions check the contract, not which cause wins (that is the pipeline's job).
+
+@pytest.fixture
+def real_client(settings):
+    with TestClient(create_app(settings)) as c:
+        yield c
+
+
+def real_diagnose(real_client, case_id):
+    return assert_envelope_ok(real_client.post("/api/diagnose", json={"case_id": case_id}), 201)
+
+
+def test_real_diagnosis_recommend(real_client, settings):
+    data = real_diagnose(real_client, "UC4-0001")
+    assert set(data) == set(Diagnosis.model_fields)
+    assert data["case_id"] == "UC4-0001" and data["outcome"] == "RECOMMEND" and data["escalate"] is False
+    ranked = data["ranked"]
+    assert ranked and [c["rank"] for c in ranked] == list(range(1, len(ranked) + 1))
+    assert data["failure_class"] == ranked[0]["failure_class"]
+    assert all(c["status"] in ("likely", "probable", "unsupported") for c in ranked)  # never "confirmed"
+    assert 0 <= data["class_confidence"] <= 1 and all(0 <= c["confidence"] <= 1 for c in ranked)
+    assert audit.get_diagnosis(settings.audit_db_path, data["diagnosis_id"]) == data  # saved as returned
+
+
+def test_real_diagnosis_escalate_flag(real_client):
+    data = real_diagnose(real_client, "UC4-0019")
+    assert data["outcome"] == "RECOMMEND" and data["escalate"] is True  # a flag, not an ESCALATE outcome
+    assert data["ranked"]
+
+
+def test_real_diagnosis_clarify(real_client):
+    data = real_diagnose(real_client, "UC4-0085")
+    assert data["outcome"] == "CLARIFY" and data["escalate"] is False
+    assert data["ranked"] == [] and data["failure_class"] is None and data["class_confidence"] is None
+    assert data["missing_info"]  # says what is missing instead of guessing
+
+
+def test_real_diagnosis_unknown_case_is_404(real_client, settings):
+    assert_envelope_error(real_client.post("/api/diagnose", json={"case_id": "UC4-9999"}), 404, "CASE_NOT_FOUND")
+    assert audit.list_events(settings.audit_db_path) == []
+
+
+def test_real_pipeline_never_sees_labels(app, settings):
+    """The real diagnose() runs, but on a copy of the case without evaluation labels."""
+    seen = []
+
+    def spy(case):
+        seen.append(case)
+        return diagnose_module.diagnose(case)
+
+    app.dependency_overrides.pop(get_case_source)  # real cases from the dataset
+    use_pipeline(app, spy)
+    with TestClient(app) as c:
+        data = real_diagnose(c, "UC4-0001")
+    assert data["outcome"] == "RECOMMEND"
+    assert all(getattr(seen[0], name) in (None, []) for name in api.LABEL_FIELDS)
+
+
+def test_real_diagnosis_json_serialization(real_client):
+    data = real_diagnose(real_client, "UC4-0001")
+    assert as_json(data) == data  # round-trips through models.Diagnosis unchanged
+    assert datetime.fromisoformat(data["created_at"].replace("Z", "+00:00")).tzinfo is not None
+    assert isinstance(json.loads(json.dumps(data)), dict)
+
+
+def test_real_diagnosis_output_has_no_secrets_or_labels(real_client):
+    data = real_diagnose(real_client, "UC4-0019")
+    text = json.dumps(data)
+    assert find_leaks(text) == []
+    for key in ("expected_cause", "expected_class", "expected_outcome", "requires_escalation", "difficulty"):
+        assert f'"{key}"' not in text
+
+
+def test_real_feedback_by_ranked_cause(real_client, settings):
+    data = real_diagnose(real_client, "UC4-0001")
+    url = f"/api/diagnoses/{data['diagnosis_id']}/feedback"
+    second = data["ranked"][1]["cause"]  # any ranked cause can be reviewed, not only the top one
+    fb = assert_envelope_ok(real_client.post(url, json={"verdict": "reject", "cause_id": second}), 201)
+    assert fb["cause_id"] == second
+    assert_envelope_error(real_client.post(url, json={"verdict": "confirm", "cause_id": "not_a_ranked_cause"}),
+                          422, "UNKNOWN_CAUSE")
+    whole = assert_envelope_ok(real_client.post(url, json={"verdict": "confirm"}), 201)  # whole diagnosis
+    assert whole["cause_id"] is None
+    history = assert_envelope_ok(real_client.get(url))
+    assert [(f["verdict"], f["cause_id"]) for f in history] == [("reject", second), ("confirm", None)]
+    assert assert_envelope_ok(real_client.get("/api/audit/verify"))["valid"] is True
+
+
+def test_real_feedback_on_clarify_allows_only_whole_diagnosis(real_client):
+    data = real_diagnose(real_client, "UC4-0085")
+    url = f"/api/diagnoses/{data['diagnosis_id']}/feedback"
+    assert_envelope_error(real_client.post(url, json={"verdict": "confirm", "cause_id": "token_expired"}),
+                          422, "UNKNOWN_CAUSE")  # CLARIFY claims no cause
+    note = "Asked the on-call team for the missing metrics."
+    fb = assert_envelope_ok(real_client.post(url, json={"verdict": "annotate", "note": note}), 201)
+    assert fb["cause_id"] is None and fb["note"] == note

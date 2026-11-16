@@ -6,7 +6,7 @@ What it stores
   New feedback is added next to old feedback; nothing is overwritten.
 
 How it protects the data
-1. Mask first. Every string goes through evidence.scrub() (tokens, API keys, emails, IPs), and
+1. Mask first. Every string goes through redact.mask_text() (tokens, API keys, emails, IPs), and
    values under sensitive keys (Authorization, X-Api-Key, password, ...) become "<redacted>".
    This happens BEFORE hashing and BEFORE saving, so a secret never reaches the database.
 2. Canonical JSON. Sorted keys, fixed separators, no NaN: the same data always gives the same bytes.
@@ -49,9 +49,14 @@ from typing import Any, Optional, Union
 
 from pydantic import BaseModel
 
-from app.uc4.evidence import scrub
+from app.uc4.redact import mask_text
 
 logger = logging.getLogger(__name__)
+
+
+def scrub(text: str) -> str:
+    """Masked copy of one string (tokens, API keys, emails, IPs) via redact.mask_text; counts are dropped."""
+    return mask_text(text)[0]
 
 SCHEMA_VERSION = "1"
 GENESIS_HASH = "0" * 64
