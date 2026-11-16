@@ -55,3 +55,9 @@ These are ideas, not fixed rules. Agree on shared shapes (case, evidence item, c
   - Evidence never reads labels and never copies `request_headers`; error messages are masked (emails, tokens, keys, IPs) with a simple regex until the shared redaction function (ai/redact) is merged.
   - The focal request keeps `client_ip_allowlisted` and `client_ip_masked` (last part hidden, e.g. `203.0.113.x`).
   - Try it: `.\.venv\Scripts\python.exe scripts\show_evidence.py UC4-0050` (add `--data` for the numbers).
+- **Report shape** (`backend/app/uc4/report_models.py`, checked by `check_report(report, evidence, allowed_causes)` in `backend/app/uc4/checks.py` before anyone sees it):
+  - `Report`: `case_id`, `outcome` (`RECOMMEND` | `CLARIFY` | `ESCALATE`), `summary`, `causes`, `verification_steps`, `escalation`, `missing_info`.
+  - `ReportCause`: `cause` (one of the ranked causes), `likelihood` (`likely` | `probable` | `possible`, never confirmed), `explanation`, `supporting` and `contradicting` citations.
+  - `Citation`: `evidence_id` (an EvidenceItem `id`) + `quote` copied from that item's `text`.
+  - `Step`: a read-only check (`action`, `why`, `cites`); changing actions (restart, rotate, roll back...) go in `Escalation` (`needed`, `team`, `reason`).
+  - Checks: citations exist and quotes match, only ranked causes, numbers match the cited evidence, no "confirmed" wording, no changing steps, no secrets, outcome consistent. Each returns `Finding`s (`code`, `severity`, `message`, `where`); `apply_findings` removes blocked parts (no cause left -> CLARIFY). `groundedness` = verified citations / all citations. Word lists in `backend/app/uc4/checks.yaml`.
