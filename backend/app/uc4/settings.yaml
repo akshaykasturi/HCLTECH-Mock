@@ -51,9 +51,16 @@ rank:
   # A signal only counts for/against a cause when its ratio is above this (or below 1/this).
   # Avoids listing near-neutral signals (ratio 0.9 or 1.1) as evidence.
   min_ratio: 1.2
-  # Signals that say "data is missing": any of these on -> CLARIFY.
+  # CLARIFY only when evidence is actually missing: a "missing" evidence item, or one of these signals on.
+  # Low confidence alone never gives CLARIFY: it gives RECOMMEND with alternatives (see gate.py).
   clarify_signals: [metrics_missing, dep_metrics_missing, auth_fields_missing, isolated_failure,
-                    ratelimit_headers_missing, window_logs_missing]
+                    ratelimit_headers_missing]
+  # All signals that say "data is missing". Never listed as a way to tell causes apart.
+  missing_data_signals: [metrics_missing, dep_metrics_missing, auth_fields_missing, isolated_failure,
+                         ratelimit_headers_missing, window_logs_missing]
+  # "To tell them apart": signals whose P(on | cause) differs by at least this much between tied causes.
+  tell_apart_min_spread: 0.4
+  tell_apart_max_signals: 4
 
 # Which evidence items show a signal. First matching pattern wins (fnmatch: * = anything).
 # Values are evidence id prefixes. change: items are cited only when marked related.
@@ -77,3 +84,12 @@ signal_evidence:
   - [duplicate_idempotency_keys, ["traffic:window"]]
   - [prior_timeouts, ["traffic:window"]]
   - ["*", ["request:"]]
+
+doc_search:
+  # Use embeddings (hybrid search). The tests switch this off with UC4_DOC_SEARCH_DENSE=0 (offline, BM25 only).
+  dense: true
+  # Reciprocal rank fusion constant: rrf = 1/(rrf_k + rank_bm25) + 1/(rrf_k + rank_dense). 60 is the usual value.
+  rrf_k: 60
+  # Doc evidence per case: how many sections, and how many sentences each item quotes.
+  evidence_k: 3
+  quote_sentences: 2
