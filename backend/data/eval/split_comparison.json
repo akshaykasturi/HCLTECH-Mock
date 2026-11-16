@@ -1,0 +1,200 @@
+{
+  "macro_f1": {
+    "tfidf/linear_svc": {
+      "random": 0.9857657348653748,
+      "grouped": 0.7780273780273781,
+      "rotation": [
+        0.7780273780273781,
+        0.9847539015606243,
+        0.7753049937923888
+      ]
+    },
+    "tfidf/rf": {
+      "random": 0.9857657348653748,
+      "grouped": 0.1911869225302061,
+      "rotation": [
+        0.1911869225302061,
+        0.4636103089884603,
+        0.2653846153846154
+      ]
+    },
+    "embeddings/rf": {
+      "random": 0.9857657348653748,
+      "grouped": 0.4062850297351645,
+      "rotation": [
+        0.4062850297351645,
+        0.17918587432793823,
+        0.41529898672755816
+      ]
+    },
+    "rules": {
+      "random": 0.9822842628759257,
+      "grouped": 0.7780273780273781,
+      "rotation": [
+        0.7780273780273781,
+        0.9847539015606243,
+        1.0
+      ]
+    },
+    "tfidf/lr": {
+      "random": 0.9822842628759257,
+      "grouped": 0.766852195423624,
+      "rotation": [
+        0.766852195423624,
+        0.9847539015606243,
+        0.9044546850998464
+      ]
+    },
+    "embeddings/lr": {
+      "random": 0.9822842628759257,
+      "grouped": 0.7680418896826252,
+      "rotation": [
+        0.768041889682625,
+        0.9847539015606243,
+        0.9884057971014493
+      ]
+    },
+    "embeddings/linear_svc": {
+      "random": 0.9822842628759257,
+      "grouped": 0.7780273780273781,
+      "rotation": [
+        0.7780273780273781,
+        0.9670686456400742,
+        0.9884057971014493
+      ]
+    }
+  },
+  "rotation": {
+    "rounds": [
+      {
+        "round": 0,
+        "test_rows": 261,
+        "held_out": {
+          "timeout": "client closed request",
+          "authorization": "forbidden",
+          "validation": "request validation failed",
+          "rate_limit": "too many requests",
+          "server_error": "typeerror: cannot read properties of undefined (reading <Q>)",
+          "authentication": "unauthorized",
+          "dependency": "upstream <SVC>: tls handshake with <SVC> failed: certificate has expired"
+        },
+        "scores": {
+          "rules": {
+            "macro_f1": 0.7780273780273781,
+            "accuracy": 0.8007662835249042
+          },
+          "tfidf/lr": {
+            "macro_f1": 0.766852195423624,
+            "accuracy": 0.8084291187739464
+          },
+          "tfidf/linear_svc": {
+            "macro_f1": 0.7780273780273781,
+            "accuracy": 0.8007662835249042
+          },
+          "tfidf/rf": {
+            "macro_f1": 0.1911869225302061,
+            "accuracy": 0.31417624521072796
+          },
+          "embeddings/lr": {
+            "macro_f1": 0.768041889682625,
+            "accuracy": 0.8007662835249042
+          },
+          "embeddings/linear_svc": {
+            "macro_f1": 0.7780273780273781,
+            "accuracy": 0.8007662835249042
+          },
+          "embeddings/rf": {
+            "macro_f1": 0.4062850297351645,
+            "accuracy": 0.48659003831417624
+          }
+        }
+      },
+      {
+        "round": 1,
+        "test_rows": 353,
+        "held_out": {
+          "authentication": "bearer token expired",
+          "dependency": "dependency <SVC> unavailable: connection refused",
+          "validation": "field <Q> is required",
+          "server_error": "internal server error",
+          "rate_limit": "rate limit of <V> requests/minute exceeded for api key",
+          "authorization": "token lacks required scope <Q>",
+          "timeout": "upstream <SVC> did not respond within <V> ms"
+        },
+        "scores": {
+          "rules": {
+            "macro_f1": 0.9847539015606243,
+            "accuracy": 0.9830028328611898
+          },
+          "tfidf/lr": {
+            "macro_f1": 0.9847539015606243,
+            "accuracy": 0.9830028328611898
+          },
+          "tfidf/linear_svc": {
+            "macro_f1": 0.9847539015606243,
+            "accuracy": 0.9830028328611898
+          },
+          "tfidf/rf": {
+            "macro_f1": 0.4636103089884603,
+            "accuracy": 0.603399433427762
+          },
+          "embeddings/lr": {
+            "macro_f1": 0.9847539015606243,
+            "accuracy": 0.9830028328611898
+          },
+          "embeddings/linear_svc": {
+            "macro_f1": 0.9670686456400742,
+            "accuracy": 0.9660056657223796
+          },
+          "embeddings/rf": {
+            "macro_f1": 0.17918587432793823,
+            "accuracy": 0.24929178470254956
+          }
+        }
+      },
+      {
+        "round": 2,
+        "test_rows": 261,
+        "held_out": {
+          "authentication": "api key not recognised for this environment",
+          "validation": "content-type <Q> is not supported; use application/json",
+          "timeout": "gateway timeout",
+          "dependency": "service unavailable",
+          "authorization": "source ip <V> is not allowlisted for this account",
+          "server_error": "timed out acquiring db connection: pool exhausted (max=<V>, waiting=<V>)",
+          "rate_limit": "too many requests"
+        },
+        "scores": {
+          "rules": {
+            "macro_f1": 1.0,
+            "accuracy": 1.0
+          },
+          "tfidf/lr": {
+            "macro_f1": 0.9044546850998464,
+            "accuracy": 0.9042145593869731
+          },
+          "tfidf/linear_svc": {
+            "macro_f1": 0.7753049937923888,
+            "accuracy": 0.8007662835249042
+          },
+          "tfidf/rf": {
+            "macro_f1": 0.2653846153846154,
+            "accuracy": 0.3563218390804598
+          },
+          "embeddings/lr": {
+            "macro_f1": 0.9884057971014493,
+            "accuracy": 0.9961685823754789
+          },
+          "embeddings/linear_svc": {
+            "macro_f1": 0.9884057971014493,
+            "accuracy": 0.9961685823754789
+          },
+          "embeddings/rf": {
+            "macro_f1": 0.41529898672755816,
+            "accuracy": 0.49808429118773945
+          }
+        }
+      }
+    ]
+  }
+}
