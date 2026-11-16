@@ -45,4 +45,11 @@ Lead = who builds it first and who to ask. Anyone can work on anything.
 
 These are ideas, not fixed rules. Agree on shared shapes (case, evidence item, cause, report) in the group and write them here as they are decided.
 
-- (nothing yet)
+- **EvidenceItem shape** (`backend/app/uc4/models.py`, built by `collect_evidence(case)` in `backend/app/uc4/evidence.py`):
+  - `id`: stable, so the report can cite it: `request:<correlation_id>`, `traffic:window`, `metric:endpoint:<route>`, `metric:service:<name>`, `change:<ts>:<service>`, `missing:<what>`.
+  - `kind`: `request` | `traffic` | `metric` | `change` | `missing`.
+  - `text`: one readable line with the numbers (what the LLM sees and quotes).
+  - `data`: the same numbers as a dict (what signals, ranking and the output check use; never parse `text`).
+  - Window = `[window_start, window_end]`; baseline = the 60 minutes before `window_start`; changes from 60 minutes before `onset_ts` to `window_end`. Sizes live in `backend/app/uc4/settings.yaml`.
+  - Evidence never reads labels and never copies `request_headers`; error messages are masked (emails, tokens, keys, IPs).
+  - Try it: `.\.venv\Scripts\python.exe scripts\show_evidence.py UC4-0050` (add `--data` for the numbers).

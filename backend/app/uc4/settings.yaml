@@ -1,0 +1,45 @@
+# UC4 settings. Change numbers here, not in code.
+
+# Data files, relative to the backend folder.
+data:
+  cases: data/eval/uc4/cases.jsonl
+  logs: data/raw/uc4/logs/requests.jsonl
+  metrics: data/raw/uc4/metrics/metrics.csv
+  changes: data/raw/uc4/changes/changes.jsonl
+
+evidence:
+  # Baseline = this many minutes before window_start (traffic and metrics).
+  baseline_minutes: 60
+  # Changes are collected from this many minutes before onset_ts up to window_end.
+  change_lookback_minutes: 60
+  # How many error codes to list in the traffic line.
+  top_error_codes: 3
+  # A traffic window with this many failing requests or fewer is "isolated".
+  min_failures_in_window: 1
+  # A window with this many requests or fewer has no useful traffic picture.
+  min_requests_in_window: 1
+
+# Route -> owning service and direct dependencies.
+# Copied from data/raw/uc4/api_docs/architecture-and-dependencies.md ("Route dependencies").
+routes:
+  "POST /v1/orders":
+    service: orders-api
+    dependencies: [payments-svc, inventory-svc]
+  "GET /v1/orders/{id}":
+    service: orders-api
+    dependencies: [orders-db]
+  "POST /v1/payments":
+    service: payments-api
+    dependencies: [bank-gateway]
+  "POST /v1/refunds":
+    service: payments-api
+    dependencies: [payments-svc]
+  "GET /v1/inventory/{sku}":
+    service: inventory-api
+    dependencies: [inventory-db]
+  "GET /v1/customers/{id}":
+    service: customers-api
+    dependencies: [customer-db]
+  "GET /v1/search":
+    service: search-api
+    dependencies: [search-cluster]
