@@ -1,72 +1,33 @@
-# Team rules for every Claude Code session in this repo
+# How we work in this repo
 
-Five people build one app, each with their own Claude Code. These rules keep all of us building the same thing the same way.
-They are guidance: anyone can work on any file, push their own branch and merge their own pull request once CI is green.
-The design and the file map are imported below from docs/ARCHITECTURE.md. Read them before writing code.
+We are building UC4: an API failure diagnosis assistant (HCLTech hackathon mock).
+Read docs/PLAN.md first. Data is described in backend/data/eval/uc4/DATA_CARD.md.
 
-Current problem: UC4 API failure diagnosis. Read docs/UC4-PLAN.md before any UC4 task.
+## Design rules
 
-@docs/ARCHITECTURE.md
-
-## Who you are working for
-
-`CLAUDE.local.md` (repo root, not committed) says which person you are helping and their main area.
-If it is missing, ask the human who they are, and suggest copying theirs from `team/personal/<name>/`.
-The "Lead" column in docs/ARCHITECTURE.md says who knows a file best: who to ask, not who is allowed.
-
-## The one design rule
-
-Deterministic code decides. The LLM only writes words. Code checks every LLM output before anyone sees it.
-Never fake AI results with hardcoded outputs.
-
-## Before writing code
-
-1. Start a task with `/start-task <branch> <what>`.
-2. For anything touching several files, write a short plan first (files, functions, tests), then carry on.
-3. If a command or script doesn't exist yet, say so. Never invent one.
-
-## How code is written here
-
-- Python 3.12, FastAPI, Pydantic v2. Type hints on every function. A one-line docstring on every public function.
-- Shared data shapes come from `app.contracts`. Don't redefine them in other files.
-- Touch only the lines the task needs. Don't reformat files, reorder imports or rename things you weren't asked to change.
-- New dependencies go in `backend/requirements.txt`; mention them in the pull request.
-- Thresholds, keywords and rules live in `backend/app/policy.yaml`. Settings come from environment variables through `app.config`. Never hardcode them.
-- LLM calls go through `app.llm.router` (`run_llm`). Never call a provider SDK from anywhere else.
-- The LLM chain object is shared across requests: return per-request data from each call; never store it on the shared object.
-- Use `logging`, not `print`, in app code.
-
-## Running things (Windows PowerShell)
-
-- Use the venv's Python directly instead of activating it: `.\.venv\Scripts\python.exe` (from `backend`).
-- Backend: in `backend`, `.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload`, then open http://127.0.0.1:8000/docs
-- Frontend: in `frontend`, `npm run dev`, then open http://127.0.0.1:5173
-- Use `127.0.0.1`, not `localhost` (localhost can resolve to IPv6 and fail).
-- Scripts run from `backend`: `.\.venv\Scripts\python.exe scripts\evaluate.py` (and the same for the others).
-
-## Tests
-
-- Stop any running uvicorn first: its reload watcher makes pytest very slow.
-- In `backend`: `.\.venv\Scripts\python.exe -m pytest -q`. `tests/conftest.py` already forces offline mode (no LLM calls, hash embedder, temporary database).
-- Put new tests in a new file for your area: `backend/tests/test_<area>_<name>.py`.
-- Never delete, skip or weaken a test to make it pass. Report what passed and what failed before saying "done".
+- Code decides; the LLM only explains; code checks the LLM's output before anyone sees it.
+- Never show a probable cause as confirmed. Causes are "likely" or "probable".
+- Never expose secrets. The fake tokens, keys and emails in `backend/data/raw/uc4/logs/requests.jsonl` are test material for masking: don't remove, change or print them.
+- Use the data's own field names (`route`, `correlation_id`, `kind`/`target` in metrics, `case_id`...). Don't rename them.
+- Tuning uses the validation split only. Final numbers use the test split only.
+- Never fake AI results with hardcoded outputs.
 
 ## Git
 
-- One task = one branch = one pull request. Start each task from a fresh `main`, and pull `main` often.
-- Run git steps one at a time; don't chain them with `;` when a step can fail. Check `git status` before switching branches.
-- Commit messages: `<lane>: <what>`, for example `ml: add conformal sets`. No quotes inside the message (PowerShell 5.1 breaks).
-- `/ready-pr` runs the tests, checks for secrets and junk, commits, pushes and prints the pull request link.
-- Merge your own pull request once CI is green. Never force-push.
+- One branch per piece of work. Pull main before starting (`/start-task`).
+- Run `/ready-pr` when done; merge your pull request when CI is green.
+- Commit messages: `<area>: <what>`, no quotes inside. Never force-push.
 - `gh` isn't installed. Pull request link: https://github.com/akshaykasturi/HCLTECH-Mock/pull/new/<branch>
 
-## Secrets
+## Running things
 
-- Never read, print or write `.env`. Never put a key in code, tests, logs or chat. `.env.example` has variable names and safe defaults only.
-- Mask anything key-like in command output, and search the staged changes for keys before every commit.
+- Python 3.12, Windows PowerShell.
+- Call the venv's Python directly, from `backend`: `.\.venv\Scripts\python.exe -m pytest -q`.
+- Use `127.0.0.1`, not `localhost`.
+- Never read or print `.env`; never put a key in code, tests, logs or chat.
+- No new dependency without saying so in the pull request (`backend/requirements.txt`).
 
 ## Talking to the human
 
-- Explain in simple words. The human must be able to explain every line to the judges.
-- After finishing a task, explain what changed in 3 to 5 plain bullets. `/explain-change` gives the full version.
+- Explain every change simply: the human must be able to explain it to the judges.
 - When unsure, ask one short question instead of guessing.
