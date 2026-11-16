@@ -144,10 +144,11 @@ def diagnose(case_or_id: Union[str, Case]) -> Diagnosis:
     with trace.step("checks") as t:
         allowed = [r.cause for r in ranked]
         findings = check_report(report, evidence, allowed)
-        grounded = groundedness(report, evidence)
+        cited = any(c.supporting or c.contradicting for c in report.causes)
+        grounded = groundedness(report, evidence) if cited else None  # nothing to cite -> None, not 0.0
         shown = apply_findings(report, findings)
         blocking = sum(1 for f in findings if f.severity == "block")
-        t["detail"] = f"{len(findings)} findings ({blocking} blocking), groundedness {grounded:.2f}"
+        t["detail"] = f"{len(findings)} findings ({blocking} blocking), groundedness " + (f"{grounded:.2f}" if grounded is not None else "n/a (nothing cited)")
 
     # On CLARIFY no cause is claimed anywhere (the report, if checks emptied it, is CLARIFY too).
     outcome = "CLARIFY" if decision.outcome == "CLARIFY" or shown.outcome == "CLARIFY" else "RECOMMEND"
@@ -164,6 +165,6 @@ def diagnose(case_or_id: Union[str, Case]) -> Diagnosis:
         tell_apart=decision.tell_apart if claim else None,
         evidence=evidence,
         missing_info=list(shown.missing_info) if outcome == "CLARIFY" else list(decision.missing_info),
-        report=shown, report_findings=findings, groundedness=round(grounded, 4), generator=generator,
+        report=shown, report_findings=findings, groundedness=None if grounded is None else round(grounded, 4), generator=generator,
         trace=trace.steps,
     )

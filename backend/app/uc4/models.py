@@ -42,7 +42,7 @@ class Case(BaseModel):
     generation: Optional[dict[str, Any]] = None
 
 
-EvidenceKind = Literal["request", "traffic", "metric", "change", "missing"]
+EvidenceKind = Literal["request", "traffic", "metric", "change", "doc", "missing"]
 
 
 class EvidenceItem(BaseModel):
@@ -80,7 +80,7 @@ class RankedCause(BaseModel):
     confirming_seen: list[str] = Field(default_factory=list)
     confirming_missing: list[str] = Field(default_factory=list)
     first_check: Optional[str] = None
-    escalate: bool = False  # the first check needs privileged access
+    escalate: bool = False  # the fix needs a privileged change by its owner (the checks themselves are read-only)
     missing_info: list[str] = Field(default_factory=list)  # from the "missing" evidence items
 
 
@@ -109,7 +109,7 @@ class GateDecision(BaseModel):
     """What the pipeline does next: recommend (maybe with alternatives), or ask for the missing information."""
 
     outcome: Outcome
-    escalate: bool  # RECOMMEND and the top cause's first check needs privileged access
+    escalate: bool  # RECOMMEND and, for the top cause, the fix needs a privileged change by its owner (the checks themselves are read-only)
     top_cause: Optional[str] = None
     reasons: list[str] = Field(default_factory=list)  # why CLARIFY (empty for RECOMMEND)
     missing_info: list[str] = Field(default_factory=list)
@@ -147,7 +147,7 @@ class Diagnosis(BaseModel):
     onset_ts: datetime
 
     outcome: Outcome  # RECOMMEND | CLARIFY
-    escalate: bool  # the top cause's first check needs privileged access
+    escalate: bool  # for the top cause, the fix needs a privileged change by its owner (the checks themselves are read-only)
     failure_class: Optional[str] = None  # the top cause's class
     class_confidence: Optional[float] = None  # sum of confidence over that class's causes
 
@@ -160,7 +160,7 @@ class Diagnosis(BaseModel):
 
     report: Optional[Report] = None  # after apply_findings: blocked parts removed
     report_findings: list[Finding] = Field(default_factory=list)  # check_report on the report as written
-    groundedness: Optional[float] = None  # verified citations / all citations, as written
+    groundedness: Optional[float] = None  # verified citations / all citations, as written; None if nothing cited
     generator: str = "template"  # "template" until an LLM writes the report
 
     trace: list[TraceStep] = Field(default_factory=list)

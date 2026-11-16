@@ -1,0 +1,143 @@
+# Readable checks and owners per cause. HAND-WRITTEN (causes.yaml is generated, so this lives apart).
+# Read by app/uc4/template_report.py.
+#
+# check_text: one read-only instruction: what to look at, and what you would expect to see if this is
+#             the cause. No numbers of our own: point at the doc that holds the number instead.
+#             Never a changing action (restart, rotate, roll back...): those belong to the owner.
+# owner:      who owns the FIX. "{client}" = the failing request's client_id; "@dependency" = the owner of
+#             the upstream dependency (see dependencies below); "@service" = the owners of the route's service.
+# owner_why:  why them, in one sentence.
+# source:     the doc section that backs the check or the owner, when there is one.
+#
+# The checks themselves are read-only: they never need privileged access (Troubleshooting guide,
+# doc:troubleshooting#1). What can be privileged is the FIX, which is why escalation names the owner.
+
+causes:
+  token_expired:
+    check_text: >-
+      Look at auth.token_age_s on the failing requests and compare it with the token lifetime in the
+      Authentication doc. If this is the cause, the age is above the lifetime and the error code says
+      the token expired.
+    owner: "{client}"
+    owner_why: The client must request a new token; nothing on the NovaPay side has to change.
+    source: doc:troubleshooting#2
+
+  invalid_api_key:
+    check_text: >-
+      Look at auth.key_prefix on the failing requests. If this is the cause, a test key (prefix nvp_test)
+      is being sent to production and the error code says the key is invalid.
+    owner: "{client}"
+    owner_why: The client must send its live key; the Authentication doc says test keys work only in the sandbox.
+    source: doc:authentication#2
+
+  missing_scope:
+    check_text: >-
+      Compare auth.scopes on the failing request with the scope the route requires in the Authorization and
+      scopes doc. If this is the cause, the required scope is not in the token's list.
+    owner: "{client}"
+    owner_why: The token was issued without the scope the route needs; the client must request one that includes it.
+    source: doc:authorization-and-scopes#2
+
+  ip_not_allowlisted:
+    check_text: >-
+      Look at client_ip_allowlisted on the failing request (the IP itself is masked to its network). If this
+      is the cause, it is false on a payments or refunds call and the error code says the IP is not allowed.
+    owner: the merchant's account owner
+    owner_why: >-
+      The Authorization and scopes doc says allowlist changes are made by the merchant's account owner in
+      the dashboard; support can only verify them.
+    source: doc:authorization-and-scopes#3
+
+  missing_required_field:
+    check_text: >-
+      Compare the field list in payload_shape on the failing request with the route's required fields in its
+      endpoint doc and in the Changelog. If this is the cause, a required field is absent from the payload.
+    owner: "{client}"
+    owner_why: The client must send the missing field; the API contract did not change on our side.
+    source: doc:troubleshooting#4
+
+  unsupported_media_type:
+    check_text: >-
+      Look at the error code and the request's content type on the failing requests. If this is the cause,
+      the body is not sent as JSON and the error code says the media type is unsupported.
+    owner: "{client}"
+    owner_why: The client must send its body as JSON with the matching content type.
+    source: doc:troubleshooting#4
+
+  client_rate_limit_exceeded:
+    check_text: >-
+      Count the failing client's requests per minute and compare them with the per-key limit in the Rate
+      limits doc; read X-RateLimit-Remaining and Retry-After on its 429 responses. If this is the cause, one
+      client is over the limit and its remaining allowance is zero.
+    owner: "{client}"
+    owner_why: Limits are per key, so the client must slow down or spread its calls.
+    source: doc:troubleshooting#5
+
+  retry_storm:
+    check_text: >-
+      Look for repeated Idempotency-Key values and earlier timeouts from the same client before the 429s.
+      If this is the cause, the same operations are retried again and again without backoff.
+    owner: "{client}"
+    owner_why: The client's retry policy must add backoff and jitter (Timeouts and retries doc).
+    source: doc:troubleshooting#5
+
+  upstream_dependency_slow:
+    check_text: >-
+      Open the latency metrics of the upstream dependency for the same minutes. If this is the cause, the
+      dependency's p95 rises while traffic stays flat, and requests end at the gateway timeout.
+    owner: "@dependency"
+    owner_why: The slow part is the dependency, so its owners must find out why it slowed down.
+    source: doc:troubleshooting#6
+
+  client_timeout_too_low:
+    check_text: >-
+      Compare the client's timeout (X-Client-Timeout-Ms, or how long its 499 requests lasted) with the
+      route's normal latency in its endpoint doc. If this is the cause, the client gives up before a normal
+      response could arrive while server latency stays healthy.
+    owner: "{client}"
+    owner_why: The Timeouts and retries doc says a short client timeout with healthy server latency is a client configuration problem.
+    source: doc:timeouts-and-retries#2
+
+  dependency_outage:
+    check_text: >-
+      Read the dependency's health endpoint and its error-rate metrics for the same minutes. If this is the
+      cause, the dependency fails for many clients at once, not just this one.
+    owner: "@dependency"
+    owner_why: The failing part is the dependency, so its owners must restore it.
+    source: doc:troubleshooting#7
+
+  upstream_tls_failure:
+    check_text: >-
+      Run a read-only TLS check against the upstream: look at the certificate dates and chain. If this is the
+      cause, the certificate has expired or the chain is invalid.
+    owner: "@dependency"
+    owner_why: The Troubleshooting guide says certificate rotation is privileged and belongs to the owner.
+    source: doc:troubleshooting#7
+
+  deployment_regression:
+    check_text: >-
+      Read the change history for a deploy to the route's service shortly before the errors started, and
+      compare the endpoint's error rate before and after it. If this is the cause, errors start right after
+      the deploy.
+    owner: "@service"
+    owner_why: The Troubleshooting guide says rollbacks are privileged and go to the service owner.
+    source: doc:troubleshooting#7
+
+  db_pool_exhausted:
+    check_text: >-
+      Look for the error code ERR_DB_POOL_EXHAUSTED and for rising latency on the route's service. If this is
+      the cause, requests wait for a database connection and fail with server errors.
+    owner: "@service"
+    owner_why: The Troubleshooting guide says pool changes are privileged; the service owns its connection pool.
+    source: doc:troubleshooting#7
+
+# Owners of dependencies, for "@dependency". The docs only say "the owning team"; these team names are OURS
+# (placeholders until the real ownership list is known).
+dependencies:
+  orders-db: the database team
+  customer-db: the database team
+  inventory-db: the database team
+  search-cluster: the search platform team
+  payments-svc: the payments team
+  inventory-svc: the inventory team
+  bank-gateway: the payments team (it manages the external bank connection)

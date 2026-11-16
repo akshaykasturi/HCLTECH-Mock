@@ -108,3 +108,50 @@ def test_labels_are_never_read() -> None:
     skip = {"diagnosis_id", "created_at", "trace"}
     a, b, c = (diagnose(x).model_dump(exclude=skip) for x in (real, wrong, bare))
     assert a == b == c
+
+
+def test_template_report_has_no_blocking_findings_on_all_90_cases() -> None:
+    from app.uc4.store import load_cases
+    for cid in load_cases():
+        d = diagnose(cid)
+        blocking = [(f.code, f.where) for f in d.report_findings if f.severity == "block"]
+        assert blocking == [], f"{cid}: {blocking}"
+
+
+def test_groundedness_is_none_when_nothing_is_cited() -> None:
+    d = diagnose("UC4-0087")  # CLARIFY: no causes, nothing to cite
+    assert d.groundedness is None
+    assert diagnose("UC4-0050").groundedness == 1.0
+
+
+def test_steps_are_readable_checks_citing_a_troubleshooting_doc() -> None:
+    from app.uc4.template_report import load_checks_text
+    d = diagnose("UC4-0038")
+    step = d.report.verification_steps[0]
+    assert step.action == load_checks_text()["causes"]["client_rate_limit_exceeded"]["check_text"]
+    assert "check check" not in step.action.lower() and "check check" not in step.why.lower()
+    assert any(c.startswith("doc:troubleshooting#") for c in step.cites)
+
+
+def test_escalation_names_the_owner_and_never_says_a_check_is_privileged() -> None:
+    for cid in ("UC4-0050", "UC4-0074", "UC4-0038", "UC4-0002"):
+        esc = diagnose(cid).report.escalation
+        assert esc.team and "read-only and need no special access" in esc.reason
+        assert "needs privileged access" not in esc.reason  # the fix may be privileged; a check never is
+    assert "database team" in diagnose("UC4-0050").report.escalation.team  # orders-db
+    assert "cli_" in diagnose("UC4-0038").report.escalation.team  # the client fixes a rate-limit problem
+
+
+def test_explanation_says_which_signal_points_each_way() -> None:
+    d = diagnose("UC4-0050")  # the endpoint metric shows a latency spike (for) and an error spike (against)
+    explanation = d.report.causes[0].explanation
+    assert "points both ways" in explanation
+    assert "error_rate_spike" in explanation.split("points both ways")[1]
+
+
+def test_confidence_display_rounds_only_for_people() -> None:
+    from app.uc4.display import format_confidence
+    assert format_confidence(0.9996) == "> 0.99" and format_confidence(0.00004) == "< 0.01"
+    assert format_confidence(0.6) == "0.60"
+    d = diagnose("UC4-0050")
+    assert d.ranked[0].confidence > 0.99  # the stored number is unchanged
