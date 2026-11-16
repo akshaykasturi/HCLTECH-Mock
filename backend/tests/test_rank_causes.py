@@ -1,7 +1,7 @@
 """Cause ranking: worked examples, statuses, confidences, evidence links."""
 import pytest
 
-from app.uc4.diagnose import diagnose
+from app.uc4.diagnose import run_code_steps as diagnose
 from app.uc4.rank import load_catalog, load_likelihoods, posteriors, rank_causes
 from app.uc4.signals import get_signals
 from app.uc4.store import get_case, load_cases

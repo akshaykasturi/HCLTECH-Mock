@@ -53,7 +53,8 @@ rank:
   min_ratio: 1.2
   # CLARIFY only when evidence is actually missing: a "missing" evidence item, or one of these signals on.
   # Low confidence alone never gives CLARIFY: it gives RECOMMEND with alternatives (see gate.py).
-  clarify_signals: [metrics_missing, dep_metrics_missing, auth_fields_missing, isolated_failure]
+  clarify_signals: [metrics_missing, dep_metrics_missing, auth_fields_missing, isolated_failure,
+                    ratelimit_headers_missing]
   # All signals that say "data is missing". Never listed as a way to tell causes apart.
   missing_data_signals: [metrics_missing, dep_metrics_missing, auth_fields_missing, isolated_failure,
                          ratelimit_headers_missing, window_logs_missing]
