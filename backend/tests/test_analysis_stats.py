@@ -1,9 +1,10 @@
 """Hand-worked examples for app.analysis.stats."""
 import math
 
+import numpy as np
 import pytest
 
-from app.analysis.stats import bootstrap_ci, brier, mcnemar, risk_coverage
+from app.analysis.stats import bootstrap_ci, bootstrap_stat, brier, ece, mcnemar, risk_coverage
 
 
 def test_brier_matches_hand_worked_example():
@@ -89,3 +90,41 @@ def test_risk_coverage_matches_hand_worked_example():
     assert [r["coverage"] for r in rows] == pytest.approx([0.25, 0.75, 1.0])
     assert [r["accuracy"] for r in rows] == pytest.approx([1.0, 2 / 3, 0.5])
     assert [r["risk"] for r in rows] == pytest.approx([0.0, 1 / 3, 0.5])
+
+
+def test_ece_matches_hand_worked_example():
+    # Bin (0.8, 0.9]: 2 items, confidence 0.9, accuracy 1/2 -> gap 0.4, weight 2/4 -> 0.2
+    # Bin (0.5, 0.6]: 2 items, confidence 0.6, accuracy 2/2 -> gap 0.4, weight 2/4 -> 0.2
+    assert ece([0.9, 0.9, 0.6, 0.6], [1, 0, 1, 1]) == pytest.approx(0.4)
+
+
+def test_ece_is_zero_when_confidence_equals_accuracy():
+    # Both items sit in bin (0.4, 0.5]: confidence 0.5, accuracy 1/2
+    assert ece([0.5, 0.5], [1, 0]) == pytest.approx(0.0)
+
+
+def test_ece_puts_an_edge_value_in_the_lower_bin():
+    # 0.3 goes in (0.2, 0.3], 0.35 in (0.3, 0.4]: two bins, so 0.5*|0-0.3| + 0.5*|1-0.35| = 0.475.
+    # (One shared bin would give |0.5-0.325| = 0.175.)
+    assert ece([0.3, 0.35], [0, 1]) == pytest.approx(0.475)
+
+
+def test_ece_handles_confidence_zero_and_one():
+    # 1.0 right -> gap 0; 0.0 wrong -> gap 0
+    assert ece([1.0, 0.0], [1, 0]) == pytest.approx(0.0)
+
+
+def test_bootstrap_stat_with_mean_matches_bootstrap_ci():
+    values = [0, 1, 1, 0, 1, 1, 1, 0, 1, 1]
+    assert bootstrap_stat(np.mean, values) == pytest.approx(bootstrap_ci(values))
+
+
+def test_bootstrap_stat_keeps_pairs_together():
+    # a always equals b, so every resample agrees fully: zero-width interval at 1.0
+    a = ["x", "y", "z", "x", "y"]
+    assert bootstrap_stat(lambda p, q: float(np.mean(p == q)), a, list(a)) == (1.0, 1.0, 1.0)
+
+
+def test_bootstrap_stat_rejects_different_lengths():
+    with pytest.raises(ValueError):
+        bootstrap_stat(np.mean, [1, 2], [1])

@@ -1,6 +1,7 @@
 """Statistics for the evaluation report: Brier score, bootstrap intervals, McNemar test, risk-coverage.
 
 Pure functions: lists or numpy arrays in, floats or dicts out. numpy and the standard library only.
+Also: ece (expected calibration error) and bootstrap_stat (interval for any statistic, e.g. macro-F1).
 """
 import math
 
@@ -39,6 +40,43 @@ def bootstrap_ci(values, n: int = 2000, alpha: float = 0.05, seed: int = 0) -> t
     means = vals[idx].mean(axis=1)
     low, high = np.quantile(means, [alpha / 2, 1 - alpha / 2])
     return float(vals.mean()), float(low), float(high)
+
+
+def ece(confidence, correct, bins: int = 10) -> float:
+    """Expected calibration error: how far stated confidence is from actual accuracy; 0 is perfect.
+
+    Items go into equal-width confidence bins (0-0.1], (0.1-0.2], ... (0.9-1]; a confidence of 0 goes
+    in the first bin. ECE = sum over bins of (share of items in the bin) * |accuracy - mean confidence|.
+    """
+    conf, ok = _as_arrays(confidence, correct)
+    edges = np.linspace(0.0, 1.0, bins + 1)
+    # right=True: a value equal to an edge belongs to the bin that ends at that edge
+    idx = np.digitize(conf, edges[1:-1], right=True)
+    total = 0.0
+    for b in np.unique(idx):
+        in_bin = idx == b
+        total += in_bin.mean() * abs(ok[in_bin].mean() - conf[in_bin].mean())
+    return float(total)
+
+
+def bootstrap_stat(stat, *arrays, n: int = 2000, alpha: float = 0.05, seed: int = 0) -> tuple[float, float, float]:
+    """Any statistic with a percentile bootstrap interval: (point, low, high).
+
+    Use it when the number is not a plain mean (macro-F1, ECE). Each resample draws the same item
+    positions from every array, so pairs (true label, prediction) stay together.
+    stat(*arrays) must return a float. With stat = np.mean it matches bootstrap_ci exactly.
+    """
+    arrs = [np.asarray(a) for a in arrays]
+    if not arrs or arrs[0].ndim != 1 or arrs[0].size == 0:
+        raise ValueError("need at least one non-empty 1-D array")
+    size = arrs[0].size
+    if any(a.shape != (size,) for a in arrs):
+        raise ValueError("all arrays must be 1-D and the same length")
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, size, size=(n, size))  # same draws as bootstrap_ci
+    values = np.array([stat(*(a[row] for a in arrs)) for row in idx], dtype=float)
+    low, high = np.quantile(values, [alpha / 2, 1 - alpha / 2])
+    return float(stat(*arrs)), float(low), float(high)
 
 
 def mcnemar(a_correct, b_correct) -> dict:
