@@ -13,7 +13,6 @@ Rules:
     allow-listed fields are copied, and free text (error messages) is masked.
   - Each item has a stable id, one readable line with numbers, and the raw numbers in `data`.
 """
-import re
 from collections import Counter
 from datetime import datetime, timedelta
 from statistics import mean
@@ -22,29 +21,26 @@ from typing import Any, Optional
 from app.uc4.models import Case, EvidenceItem
 from app.uc4.settings import get_settings
 from app.uc4 import store
+from app.uc4.redact import mask_text
 
 # Only these response headers are copied (they carry no secrets).
 _RATE_LIMIT_HEADERS = ("X-RateLimit-Limit", "X-RateLimit-Remaining", "Retry-After")
 _METRIC_COLUMNS = ("error_rate", "p95_ms", "rps")
 _UPSTREAM_STATUSES = (502, 503, 504)
 
-# Safety net for free text. The full masking step (plan step 2) runs before this;
-# this keeps evidence clean even when called on raw data.
-_SCRUB_PATTERNS = [
-    (re.compile(r"eyJ[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+){0,2}"), "<token>"),
-    (re.compile(r"\bnvp_(live|test)_[A-Za-z0-9]+"), r"nvp_\1_<key>"),
-    (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "<email>"),
-    (re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b"), "<ip>"),
-]
+def _masked(text: Optional[str]) -> Optional[str]:
+    """Mask secrets in free text (error messages, change descriptions) with redact.mask_text."""
+    return None if text is None else mask_text(text)[0]
 
 
-def scrub(text: Optional[str]) -> Optional[str]:
-    """Mask tokens, full API keys, emails and IPs inside a piece of free text."""
-    if text is None:
+def mask_ip(ip: Optional[str]) -> Optional[str]:
+    """Keep the network, hide the host: '203.0.113.42' -> '203.0.113.x'. Anything else -> '<ip>'."""
+    if not ip:
         return None
-    for pattern, replacement in _SCRUB_PATTERNS:
-        text = pattern.sub(replacement, text)
-    return text
+    parts = ip.split(".")
+    if len(parts) == 4 and all(p.isdigit() for p in parts):
+        return ".".join(parts[:3] + ["x"])
+    return "<ip>"
 
 
 # ---------- small formatting helpers ----------
@@ -114,15 +110,16 @@ def _request_item(row: dict[str, Any], item_id: str) -> EvidenceItem:
         "status": row.get("status"),
         "latency_ms": row.get("latency_ms"),
         "error_code": error.get("code"),
-        "error_message": scrub(error.get("message")),
+        "error_message": _masked(error.get("message")),
         "upstream_service": upstream.get("service") if upstream else None,
         "upstream_status": upstream.get("status") if upstream else None,
-        "upstream_error": scrub(upstream.get("error")) if upstream else None,
+        "upstream_error": _masked(upstream.get("error")) if upstream else None,
         "upstream_latency_ms": upstream.get("latency_ms") if upstream else None,
         "auth_method": auth.get("method"),
         "key_prefix": auth.get("key_prefix"),
         "token_age_s": auth.get("token_age_s"),
         "scopes": auth.get("scopes"),
+        "client_ip_masked": mask_ip(row.get("client_ip")),
         "client_ip_allowlisted": row.get("client_ip_allowlisted"),
         "payload_shape": row.get("payload_shape"),
         "rate_limit_headers": rate_limit,
@@ -145,7 +142,8 @@ def _request_item(row: dict[str, Any], item_id: str) -> EvidenceItem:
     if data["scopes"] is not None:
         auth_bits.append(f"scopes {', '.join(data['scopes']) or 'none'}")
     if data["client_ip_allowlisted"] is not None:
-        auth_bits.append(f"IP allowlisted {data['client_ip_allowlisted']}")
+        allowlisted = "allowlisted" if data["client_ip_allowlisted"] else "NOT allowlisted"
+        auth_bits.append(f"client IP {data['client_ip_masked']} {allowlisted}")
     parts.append(", ".join(auth_bits))
     if data["payload_shape"]:
         parts.append(f"payload {data['payload_shape']}")
@@ -157,8 +155,12 @@ def _request_item(row: dict[str, Any], item_id: str) -> EvidenceItem:
 
 # ---------- traffic ----------
 
-def traffic_stats(rows: list[dict[str, Any]], minutes: float, top_n: int) -> dict[str, Any]:
-    """Count, error rate, status counts, top error codes and client spread for some log rows."""
+def sample_stats(rows: list[dict[str, Any]], top_n: int) -> dict[str, Any]:
+    """What a SAMPLE of log rows can tell us: mix and shares, never volume.
+
+    Logs are a sample of traffic, so counts and per-minute rates from them say nothing
+    about traffic volume. Volume and error rate come from metrics (rps, error_rate).
+    """
     n = len(rows)
     failures = sum(1 for r in rows if (r.get("status") or 0) >= 400)
     statuses = Counter(r.get("status") for r in rows)
@@ -166,10 +168,9 @@ def traffic_stats(rows: list[dict[str, Any]], minutes: float, top_n: int) -> dic
     clients = Counter(r.get("client_id") for r in rows)
     top_client, top_count = clients.most_common(1)[0] if clients else (None, 0)
     return {
-        "requests": n,
-        "requests_per_min": round(n / minutes, 2) if minutes else None,
-        "failures": failures,
-        "error_rate": round(failures / n, 4) if n else None,
+        "logged_requests": n,  # size of the sample, not traffic volume
+        "logged_failures": failures,
+        "failed_share": round(failures / n, 4) if n else None,
         "status_counts": {str(k): v for k, v in sorted(statuses.items())},
         "top_error_codes": dict(codes.most_common(top_n)),
         "clients": len(clients),
@@ -179,21 +180,22 @@ def traffic_stats(rows: list[dict[str, Any]], minutes: float, top_n: int) -> dic
 
 
 def _traffic_item(case: Case, window: list, baseline: list, baseline_min: int, top_n: int) -> EvidenceItem:
-    window_min = (case.window_end - case.window_start).total_seconds() / 60
-    w = traffic_stats(window, window_min, top_n)
-    b = traffic_stats(baseline, baseline_min, top_n)
+    w = sample_stats(window, top_n)
+    b = sample_stats(baseline, top_n)
+    # From the baseline sample we keep shares only (comparable across samples), never counts.
+    b_shares = {"failed_share": b["failed_share"], "top_client_share": b["top_client_share"],
+                "top_client": b["top_client"]}
     text = (
-        f"Traffic on {case.route} {_hms(case.window_start)}-{_hms(case.window_end)} ({window_min:g} min): "
-        f"{w['requests']} requests ({_num(w['requests_per_min'])}/min), error rate {_pct(w['error_rate'])}; "
-        f"baseline {baseline_min} min before: {b['requests']} requests ({_num(b['requests_per_min'])}/min), "
-        f"error rate {_pct(b['error_rate'])}; "
-        f"window statuses {_counts_text(w['status_counts'])}; "
+        f"Logged requests (sample, not volume) on {case.route} {_hms(case.window_start)}-{_hms(case.window_end)}: "
+        f"{_pct(w['failed_share'])} of logged requests failed ({w['logged_failures']} of {w['logged_requests']}); "
+        f"statuses {_counts_text(w['status_counts'])}; "
         f"top error codes {_counts_text(w['top_error_codes'])}; "
-        f"{w['clients']} clients, top client {w['top_client']} sends {_pct(w['top_client_share'])} of requests "
-        f"(baseline top client share {_pct(b['top_client_share'])})"
+        f"{w['clients']} clients, top client {w['top_client']} in {_pct(w['top_client_share'])} of logged requests "
+        f"(previous {baseline_min} min: {_pct(b['top_client_share'])}, failed share {_pct(b['failed_share'])}). "
+        f"Traffic volume and error rate: see endpoint metrics"
     )
     return EvidenceItem(id="traffic:window", kind="traffic", text=text,
-                        data={"window": w, "baseline": b, "window_minutes": window_min,
+                        data={"sample": True, "window": w, "baseline": b_shares,
                               "baseline_minutes": baseline_min})
 
 
@@ -220,10 +222,10 @@ def _metric_item(case: Case, kind: str, target: str, baseline_start: datetime, l
 
     e, p, r = data["error_rate"], data["p95_ms"], data["rps"]
     text = (
-        f"Metrics for {label} {target} (window mean vs {len(baseline)}-min baseline): "
-        f"p95 {_num(p['window'])} ms vs {_num(p['baseline'])} ms ({_ratio_text(p['ratio'])}, peak {_num(p['window_max'])} ms); "
+        f"Metrics for {label} {target} (all traffic, window mean vs previous {len(baseline)} min): "
+        f"traffic volume {_num(r['window'])} rps vs {_num(r['baseline'])} rps ({_ratio_text(r['ratio'])}); "
         f"error rate {_pct(e['window'])} vs {_pct(e['baseline'])} ({_ratio_text(e['ratio'])}); "
-        f"rps {_num(r['window'])} vs {_num(r['baseline'])} ({_ratio_text(r['ratio'])})"
+        f"p95 {_num(p['window'])} ms vs {_num(p['baseline'])} ms ({_ratio_text(p['ratio'])}, peak {_num(p['window_max'])} ms)"
     )
     return EvidenceItem(id=f"metric:{kind}:{target}", kind="metric", text=text, data=data)
 
@@ -245,9 +247,9 @@ def _change_item(case: Case, change: dict[str, Any], dependencies: list[str]) ->
     version = f" {change['version']}" if change.get("version") else ""
     related_text = f"related ({relation})" if relation else f"unrelated (route's service is {route_service})"
     text = (f"{change.get('type', 'change').capitalize()} on {service}{version} at {_hms(ts)} ({when}) "
-            f"by {change.get('author')}: \"{scrub(change.get('description'))}\"; {related_text}")
+            f"by {change.get('author')}: \"{_masked(change.get('description'))}\"; {related_text}")
     data = {**{k: change.get(k) for k in ("ts", "service", "type", "version", "author")},
-            "description": scrub(change.get("description")),
+            "description": _masked(change.get("description")),
             "minutes_before_onset": minutes, "related": relation is not None, "relation": relation}
     return EvidenceItem(id=f"change:{change['ts']}:{service}", kind="change", text=text, data=data)
 
@@ -302,11 +304,12 @@ def collect_evidence(case: Case) -> list[EvidenceItem]:
     baseline = store.logs_for_route(case.route, baseline_start, case.window_start, end_inclusive=False)
     traffic = _traffic_item(case, window, baseline, baseline_min, cfg["top_error_codes"])
     items.append(traffic)
-    if traffic.data["window"]["requests"] <= cfg["min_requests_in_window"]:
-        missing.append(_missing("other_requests", f"only {traffic.data['window']['requests']} request(s) on "
-                                f"{case.route} in the window, so there is no traffic pattern to compare"))
-    elif traffic.data["window"]["failures"] <= cfg["min_failures_in_window"]:
-        missing.append(_missing("other_failures", f"only {traffic.data['window']['failures']} failing request(s) "
+    sample = traffic.data["window"]
+    if sample["logged_requests"] <= cfg["min_requests_in_window"]:
+        missing.append(_missing("other_requests", f"only {sample['logged_requests']} logged request(s) on "
+                                f"{case.route} in the window, so there is no pattern to compare"))
+    elif sample["logged_failures"] <= cfg["min_failures_in_window"]:
+        missing.append(_missing("other_failures", f"only {sample['logged_failures']} logged failing request(s) "
                                 f"on {case.route} in the window: an isolated failure, no pattern"))
 
     # metric: endpoint
