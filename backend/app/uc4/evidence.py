@@ -13,7 +13,6 @@ Rules:
     allow-listed fields are copied, and free text (error messages) is masked.
   - Each item has a stable id, one readable line with numbers, and the raw numbers in `data`.
 """
-import re
 from collections import Counter
 from datetime import datetime, timedelta
 from statistics import mean
@@ -22,29 +21,16 @@ from typing import Any, Optional
 from app.uc4.models import Case, EvidenceItem
 from app.uc4.settings import get_settings
 from app.uc4 import store
+from app.uc4.redact import mask_text
 
 # Only these response headers are copied (they carry no secrets).
 _RATE_LIMIT_HEADERS = ("X-RateLimit-Limit", "X-RateLimit-Remaining", "Retry-After")
 _METRIC_COLUMNS = ("error_rate", "p95_ms", "rps")
 _UPSTREAM_STATUSES = (502, 503, 504)
 
-# Simple regex masking for free text (error messages, change descriptions).
-# TODO: switch to Atheesha's redaction function once the ai/redact branch is merged.
-_SCRUB_PATTERNS = [
-    (re.compile(r"eyJ[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+){0,2}"), "<token>"),
-    (re.compile(r"\bnvp_(live|test)_[A-Za-z0-9]+"), r"nvp_\1_<key>"),
-    (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "<email>"),
-    (re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b"), "<ip>"),
-]
-
-
-def scrub(text: Optional[str]) -> Optional[str]:
-    """Mask tokens, full API keys, emails and IPs inside a piece of free text."""
-    if text is None:
-        return None
-    for pattern, replacement in _SCRUB_PATTERNS:
-        text = pattern.sub(replacement, text)
-    return text
+def _masked(text: Optional[str]) -> Optional[str]:
+    """Mask secrets in free text (error messages, change descriptions) with redact.mask_text."""
+    return None if text is None else mask_text(text)[0]
 
 
 def mask_ip(ip: Optional[str]) -> Optional[str]:
@@ -124,10 +110,10 @@ def _request_item(row: dict[str, Any], item_id: str) -> EvidenceItem:
         "status": row.get("status"),
         "latency_ms": row.get("latency_ms"),
         "error_code": error.get("code"),
-        "error_message": scrub(error.get("message")),
+        "error_message": _masked(error.get("message")),
         "upstream_service": upstream.get("service") if upstream else None,
         "upstream_status": upstream.get("status") if upstream else None,
-        "upstream_error": scrub(upstream.get("error")) if upstream else None,
+        "upstream_error": _masked(upstream.get("error")) if upstream else None,
         "upstream_latency_ms": upstream.get("latency_ms") if upstream else None,
         "auth_method": auth.get("method"),
         "key_prefix": auth.get("key_prefix"),
@@ -261,9 +247,9 @@ def _change_item(case: Case, change: dict[str, Any], dependencies: list[str]) ->
     version = f" {change['version']}" if change.get("version") else ""
     related_text = f"related ({relation})" if relation else f"unrelated (route's service is {route_service})"
     text = (f"{change.get('type', 'change').capitalize()} on {service}{version} at {_hms(ts)} ({when}) "
-            f"by {change.get('author')}: \"{scrub(change.get('description'))}\"; {related_text}")
+            f"by {change.get('author')}: \"{_masked(change.get('description'))}\"; {related_text}")
     data = {**{k: change.get(k) for k in ("ts", "service", "type", "version", "author")},
-            "description": scrub(change.get("description")),
+            "description": _masked(change.get("description")),
             "minutes_before_onset": minutes, "related": relation is not None, "relation": relation}
     return EvidenceItem(id=f"change:{change['ts']}:{service}", kind="change", text=text, data=data)
 
