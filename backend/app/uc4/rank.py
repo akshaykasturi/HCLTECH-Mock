@@ -16,7 +16,7 @@ from typing import Any, Optional
 
 import yaml
 
-from app.uc4.models import EvidenceItem, RankedCause, SignalLink
+from app.uc4.models import DistinguishingSignal, EvidenceItem, RankedCause, SignalLink
 from app.uc4.settings import BACKEND_DIR, get_settings
 
 LIKELIHOODS = BACKEND_DIR / "data" / "eval" / "uc4" / "derived" / "likelihoods.learned.yaml"
@@ -85,20 +85,30 @@ def evidence_for(signal: str, evidence: list[EvidenceItem]) -> list[str]:
 
 # ---------- ranking ----------
 
-def rank_causes(signals: dict[str, Optional[bool]], evidence: list[EvidenceItem]) -> list[RankedCause]:
-    """All causes, most likely first, each with supporting/contradicting signals and a status."""
+def rank_causes(signals: dict[str, Optional[bool]], evidence: list[EvidenceItem],
+                threshold: Optional[float] = None, margin: Optional[float] = None) -> list[RankedCause]:
+    """All causes, most likely first, each with supporting/contradicting signals and a status.
+    `threshold` and `margin` override settings.yaml (used by scripts/tune_rank.py)."""
     cfg = get_settings()["rank"]
-    threshold, margin, min_ratio = cfg["confidence_threshold"], cfg["near_tie_margin"], cfg["min_ratio"]
+    threshold = cfg["confidence_threshold"] if threshold is None else threshold
+    margin = cfg["near_tie_margin"] if margin is None else margin
+    min_ratio = cfg["min_ratio"]
     catalog = load_catalog()
     post = posteriors(signals)
     order = sorted(post, key=lambda c: (-post[c], c))
     missing_info = [item.text.removeprefix("Missing: ") for item in evidence if item.kind == "missing"]
     on_signals = [s for s, v in signals.items() if v]
 
+    # Near-tie group: every cause within `margin` of the top one. Only a tie if 2+ causes are in it.
+    top_conf = post[order[0]]
+    tied = [c for c in order if top_conf - post[c] <= margin]
+    tied = set(tied) if len(tied) > 1 else set()
+
     ranked = []
     for i, cause in enumerate(order):
         entry = catalog.get(cause, {})
         conf = post[cause]
+        near_tie = cause in tied
 
         supporting, contradicting = [], []
         for s in on_signals:
@@ -119,15 +129,15 @@ def rank_causes(signals: dict[str, Optional[bool]], evidence: list[EvidenceItem]
         confirming = entry.get("confirming_signals", [])
         seen = [s for s in confirming if signals.get(s)]
         missing = [s for s in confirming if not signals.get(s)]
-        if confirming and not missing and conf >= threshold:
+        # likely:      all confirming signals seen, confident, and no near-tie with another cause;
+        # probable:    confident, OR the top cause, OR tied with the top (the gate recommends these);
+        # unsupported: everything else. Never "confirmed": only a human confirms, after first_check.
+        if confirming and not missing and conf >= threshold and not near_tie:
             status = "likely"
-        elif conf >= threshold:
+        elif conf >= threshold or i == 0 or near_tie:
             status = "probable"
         else:
             status = "unsupported"
-
-        neighbours = [post[order[j]] for j in (i - 1, i + 1) if 0 <= j < len(order)]
-        near_tie = any(abs(conf - n) <= margin for n in neighbours)
 
         ranked.append(RankedCause(
             rank=i + 1, cause=cause, failure_class=entry.get("class", "unknown"), confidence=round(conf, 6),
@@ -136,6 +146,29 @@ def rank_causes(signals: dict[str, Optional[bool]], evidence: list[EvidenceItem]
             escalate=bool(entry.get("requires_escalation")), missing_info=missing_info,
         ))
     return ranked
+
+
+def distinguishing_signals(causes: list[str], signals: dict[str, Optional[bool]],
+                           min_spread: float, limit: int) -> list[DistinguishingSignal]:
+    """Signals whose P(on | cause) differs most between the given causes (spread = max - min >= min_spread).
+
+    These are what to look at to tell the causes apart. Missing-data signals are left out: they
+    say nothing about which cause it is.
+    """
+    likelihoods = load_likelihoods()
+    skip = set(get_settings()["rank"]["missing_data_signals"])
+    rows = []
+    for s in sorted(likelihoods[causes[0]]):
+        if s in skip:
+            continue
+        p_on = {c: likelihoods[c][s] for c in causes}
+        spread = max(p_on.values()) - min(p_on.values())
+        if spread >= min_spread:
+            favours = max(causes, key=lambda c: (p_on[c], -causes.index(c)))
+            rows.append((spread, s, DistinguishingSignal(signal=s, favours=favours, p_on=p_on,
+                                                         observed=signals.get(s))))
+    rows.sort(key=lambda r: (-r[0], r[1]))
+    return [r[2] for r in rows[:limit]]
 
 
 def split_ids(name: str) -> list[str]:
