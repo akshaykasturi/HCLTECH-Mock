@@ -4,6 +4,7 @@ Every classifier (SVM, Naive Bayes, Logistic Regression, Random Forest) uses the
 cleaning, the same columns and the same train/test rows, so their scores can be compared.
 No classifier lives here: plug one in with Pipeline([("features", build_features()), ("clf", model)]).
 """
+import json
 import logging
 import re
 from collections.abc import Iterable
@@ -35,8 +36,8 @@ CONFIG: dict[str, Any] = {
     },
     "label": "label",
     "group": "case_id",  # used only to keep cases together (GroupKFold); never a feature
-    # Never given to a model: the answer, the case ID, and a sampling flag.
-    "exclude": ["label", "case_id", "is_focal"],
+    # Never given to a model: the answer, the case ID, a sampling flag, and the template (a grouping key only).
+    "exclude": ["label", "case_id", "is_focal", "template_id"],
     "text": "message",  # one free-text column, fed to both TF-IDF vectorizers
     "categorical": ["status", "route", "error_code", "upstream_error"],
     "numeric": ["ratelimit_remaining"],
@@ -181,7 +182,9 @@ def build_features(mode: Literal["default", "nb"] = "default", **overrides: Any)
 
     def impute() -> SimpleImputer:
         # Missing number (field absent in the log line) -> 0; the has_* flag says it was absent.
-        return SimpleImputer(strategy="constant", fill_value=0.0)
+        # keep_empty_features: a column that is missing in every training row (e.g. a fold without the
+        # pool-exhausted template) stays as zeros instead of being dropped, so the output width never changes.
+        return SimpleImputer(strategy="constant", fill_value=0.0, keep_empty_features=True)
 
     text_col = CONFIG["text"]
     # Text is already lower-cased by clean_text; lowercase=False keeps placeholders like <IP> distinct.
@@ -266,3 +269,127 @@ def get_split() -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
 def get_validation() -> tuple[pd.DataFrame, pd.Series]:
     """Return (X_val, y_val) for tuning (thresholds, calibration). Never use the test split for this."""
     return load_dataset("validation")
+
+
+# ---------------------------------------------------------------------------
+# Message templates and the template-grouped split (test on wording never seen in training)
+# ---------------------------------------------------------------------------
+# The generator isn't in the repo, so the template is recovered from the cleaned message by masking
+# everything that varies between rows of the same template.
+_TEMPLATE_SUBS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\s*\(received customer_email=[^)]*\)"), ""),  # optional echoed-email ending
+    (re.compile(r"'[^']*'"), "<Q>"),  # quoted values: field names, media types, scopes
+    (re.compile(r"\b[a-z]+(?:-[a-z]+)*-(?:db|svc|gateway|cluster)\b"), "<SVC>"),  # service / dependency names
+    (re.compile(r"<(?:IP|EMAIL|NUM|UUID|HEX|TS|CORR_ID|REQ_ID|TOKEN|JWT|API_KEY|SECRET|ID)>"), "<V>"),  # cleaner placeholders
+    # Short numbers too: one token for every value, so "3000 ms" and "10000 ms" (<NUM> after cleaning) match.
+    (re.compile(r"\b\d+\b"), "<V>"),
+]
+SPLITS_DIR = Path(__file__).resolve().parents[3] / "data" / "splits"
+GROUPED_SPLIT_FILE = SPLITS_DIR / "test_idx_grouped.json"
+N_ROTATIONS = 3  # every class has at least 3 templates, so 3 rounds test each template at least once
+SPLIT_SEED = 42
+
+
+def template_id(message: str) -> str:
+    """Template of a cleaned message: the wording with every varying value masked."""
+    t = message
+    for pattern, repl in _TEMPLATE_SUBS:
+        t = pattern.sub(repl, t)
+    return _SPACES.sub(" ", t).strip()
+
+
+def load_pool() -> tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
+    """All 863 rows of train + validation + test as one pool: (X, y, meta with split, case_id, template_id, text)."""
+    frames = []
+    for split in CONFIG["files"]:
+        raw = _read(split)
+        frames.append(pd.DataFrame({"split": split, "case_id": raw["case_id"], "text": raw["text"], "label": raw["label"]}))
+    meta = pd.concat(frames, ignore_index=True)
+    X = parse_lines(meta["text"])
+    meta["template_id"] = X[CONFIG["text"]].map(template_id)
+    return X, meta.pop("label").rename("label"), meta
+
+
+def _template_owner(meta: pd.DataFrame, y: pd.Series) -> dict[str, str]:
+    """Each template's majority class (ties -> alphabetical); a template shared by two classes belongs to one."""
+    counts = pd.DataFrame({"t": meta["template_id"], "y": y}).value_counts().reset_index(name="n")
+    counts = counts.sort_values(["t", "n", "y"], ascending=[True, False, True])
+    return dict(counts.drop_duplicates("t")[["t", "y"]].itertuples(index=False, name=None))
+
+
+def template_rotations(meta: pd.DataFrame, y: pd.Series, rounds: int = N_ROTATIONS, seed: int = SPLIT_SEED) -> list[list[str]]:
+    """Held-out templates per round: one template per class, rotating so each template is held out at least once.
+
+    Templates are shuffled per class with the seed; round r holds out template r mod (templates of that class).
+    """
+    owner = _template_owner(meta, y)
+    rng = np.random.default_rng(seed)
+    per_class = {}
+    for cls in sorted(set(owner.values())):
+        templates = sorted(t for t, c in owner.items() if c == cls)
+        if len(templates) < 2:
+            raise ValueError(f"class {cls} has {len(templates)} template(s); need at least 2 to hold one out")
+        per_class[cls] = [templates[i] for i in rng.permutation(len(templates))]
+    return [sorted(ts[r % len(ts)] for ts in per_class.values()) for r in range(rounds)]
+
+
+def _fingerprint(meta: pd.DataFrame) -> str:
+    """sha256 of the pooled texts and the template rules: the saved split is only valid for exactly these."""
+    import hashlib
+
+    rules = "\n".join(f"{p.pattern} -> {r}" for p, r in _TEMPLATE_SUBS)
+    return hashlib.sha256(("\n".join(meta["text"]) + "\n#rules\n" + rules).encode("utf-8")).hexdigest()
+
+
+def _split_by_templates(
+    X: pd.DataFrame, y: pd.Series, meta: pd.DataFrame, held_out: list[str]
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    """Train = rows whose template is not held out; test = rows whose template is."""
+    test = meta["template_id"].isin(held_out).to_numpy()
+    missing = sorted(set(y) - set(y[~test]))
+    if missing:
+        raise RuntimeError(f"classes with no training rows after holding out templates: {missing}")
+    return X[~test], X[test], y[~test], y[test]
+
+
+def get_group_split(path: Path = GROUPED_SPLIT_FILE) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    """(X_train, X_test, y_train, y_test) with one whole template per class held out for test.
+
+    Rows are pooled from all three CSVs. The held-out templates and test row indices are saved to `path` on
+    the first run and reused afterwards, so every model is scored on the same rows.
+    """
+    X, y, meta = load_pool()
+    fp = _fingerprint(meta)
+    if path.exists():
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        if saved["fingerprint"] != fp:
+            raise RuntimeError(f"{path} was made from different data; delete it on purpose to rebuild the split")
+        held_out = saved["test_templates"]
+    else:
+        held_out = template_rotations(meta, y)[0]
+        test_idx = np.flatnonzero(meta["template_id"].isin(held_out).to_numpy()).tolist()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({
+            "description": "UC4 template-grouped split: one message template per class held out for test (rotation round 0).",
+            "pool": "rows of classifier_train.csv, classifier_calibration.csv, classifier_test.csv in that order",
+            "seed": SPLIT_SEED, "fingerprint": fp, "test_templates": held_out, "test_idx": test_idx,
+        }, indent=2), encoding="utf-8")
+        logger.info("saved grouped split to %s (%d test rows)", path, len(test_idx))
+    X_train, X_test, y_train, y_test = _split_by_templates(X, y, meta, held_out)
+    if path.exists():
+        saved_idx = json.loads(path.read_text(encoding="utf-8"))["test_idx"]
+        if saved_idx != X_test.index.tolist():
+            raise RuntimeError("grouped test rows differ from the saved file")
+    return X_train, X_test, y_train, y_test
+
+
+def get_group_templates(index: pd.Index) -> pd.Series:
+    """Template IDs for pooled row indices (use with GroupKFold in grouped mode)."""
+    _, _, meta = load_pool()
+    return meta.loc[index, "template_id"].rename("template_id")
+
+
+def get_group_cases(index: pd.Index) -> pd.Series:
+    """Case IDs for pooled row indices (for case-level bootstrap intervals in grouped mode)."""
+    _, _, meta = load_pool()
+    return meta.loc[index, "case_id"].rename("case_id")

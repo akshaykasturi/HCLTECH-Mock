@@ -1,0 +1,65 @@
+{
+  "name": "uc4-failure-class-tfidf-linear_svc",
+  "task": "classify one failing API log line into 7 failure classes",
+  "classes": [
+    "authentication",
+    "authorization",
+    "dependency",
+    "rate_limit",
+    "server_error",
+    "timeout",
+    "validation"
+  ],
+  "model": "tfidf/linear_svc",
+  "trained_on_split": "random",
+  "training": {
+    "best_params": {
+      "clf__C": 0.1
+    },
+    "cv_f1_macro": 0.9837305551591266,
+    "cv_folds": 5,
+    "cv_kind": "StratifiedGroupKFold",
+    "fit_seconds": 4.649690599999303,
+    "calibrated_on": "validation"
+  },
+  "train": {
+    "rows": 427,
+    "accuracy": 0.990632318501171,
+    "macro_f1": 0.9893858252520866
+  },
+  "test": {
+    "n": 303,
+    "accuracy": 0.9867986798679867,
+    "macro_f1": 0.9857657348653748,
+    "balanced_accuracy": 0.988795518207283,
+    "weighted_f1": 0.986917539292945,
+    "mcc": 0.9847377889760692,
+    "cohen_kappa": 0.9845364770726479,
+    "top2_accuracy": 1.0,
+    "log_loss": 0.09579443642189772,
+    "brier": 0.024721077589298618,
+    "ece": 0.054231611544118374
+  },
+  "test_macro_f1_95ci": [
+    0.9452236164736165,
+    1.0
+  ],
+  "test_on_unseen_wording": {
+    "split": "grouped",
+    "accuracy": 0.8007662835249042,
+    "macro_f1": 0.7780273780273781
+  },
+  "per_class_f1": {
+    "authentication": 1.0,
+    "authorization": 1.0,
+    "dependency": 1.0,
+    "rate_limit": 0.9591836734693878,
+    "server_error": 1.0,
+    "timeout": 0.9411764705882353,
+    "validation": 1.0
+  },
+  "file": "failure_class_tfidf__linear_svc.joblib",
+  "sha256": "844ed00705dc838dec8ff36fd3fb5723c945586133c9f41bcb4ed7a67e1d3922",
+  "scikit_learn_version": "1.9.1",
+  "released": "2026-11-16"
+}
