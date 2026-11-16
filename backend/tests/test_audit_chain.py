@@ -84,9 +84,32 @@ def test_init_creates_tables_and_is_idempotent(db):
                                 "first_bad_seq": None, "reason": None}
 
 
-def test_init_rejects_missing_folder(tmp_path):
-    with pytest.raises(AuditValidationError):
-        init_db(tmp_path / "no_such_folder" / "audit.db")
+def test_missing_folder_is_created_like_a_fresh_clone(tmp_path):
+    # Regression: Git does not keep the empty data/audit/ folder, and POST /api/diagnose returned 503.
+    path = tmp_path / "data" / "audit" / "uc4_audit.db"
+    assert not path.parent.exists()
+    init_db(path)
+    assert path.parent.is_dir() and path.is_file()
+    event = record_diagnosis(path, make_diagnosis())
+    record_feedback(path, "dx-0001", "confirm", cause_id="upstream_dependency_slow")
+    assert get_diagnosis(path, "dx-0001")["case_id"] == "UC4-0050"
+    assert [f["verdict"] for f in get_feedback(path, "dx-0001")] == ["confirm"]
+    chain = verify_chain(path)
+    assert chain["valid"] and chain["events_checked"] == 2 and event["prev_hash"] == GENESIS_HASH
+
+
+def test_missing_folder_is_created_on_any_call_not_only_init(tmp_path):
+    path = tmp_path / "removed_after_start" / "audit.db"
+    record_diagnosis(path, make_diagnosis())  # no init_db first
+    assert verify_chain(path)["valid"] and len(list_events(path)) == 1
+
+
+def test_folder_that_cannot_be_created_is_a_storage_error(tmp_path):
+    blocker = tmp_path / "blocker"
+    blocker.write_text("a file where the database folder should be")
+    with pytest.raises(AuditStorageError):
+        init_db(blocker / "audit.db")
+    assert blocker.is_file()  # the file in the way is left untouched
 
 
 # 2 + 3. Diagnosis insertion and retrieval
