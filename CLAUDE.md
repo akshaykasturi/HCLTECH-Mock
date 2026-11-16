@@ -17,7 +17,7 @@ Read docs/PLAN.md first. Data is described in backend/data/eval/uc4/DATA_CARD.md
 - One branch per piece of work. Pull main before starting (`/start-task`).
 - Run `/ready-pr` when done; merge your pull request when CI is green.
 - Commit messages: `<area>: <what>`, no quotes inside. Never force-push.
-- `gh` isn't installed. Pull request link: https://github.com/akshaykasturi/HCLTECH-Mock/pull/new/<branch>
+- Open pull requests with the GitHub CLI: `gh pr create`, check CI with `gh pr checks`. If `gh auth status` fails (not installed or not logged in), use the link instead: https://github.com/akshaykasturi/HCLTECH-Mock/pull/new/<branch>
 
 ## Running things
 

@@ -21,6 +21,12 @@
       "Bash(pip install*)",
       "Bash(python -m pip install*)",
       "Bash(.\\.venv\\Scripts\\python.exe -m pip install*)",
+      "Bash(gh auth status*)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr list*)",
+      "Bash(gh pr checks*)",
+      "Bash(gh pr status*)",
       "PowerShell(git status*)",
       "PowerShell(git diff*)",
       "PowerShell(git log*)",
@@ -40,7 +46,13 @@
       "PowerShell(npm *)",
       "PowerShell(pip install*)",
       "PowerShell(python -m pip install*)",
-      "PowerShell(.\\.venv\\Scripts\\python.exe -m pip install*)"
+      "PowerShell(.\\.venv\\Scripts\\python.exe -m pip install*)",
+      "PowerShell(gh auth status*)",
+      "PowerShell(gh pr create*)",
+      "PowerShell(gh pr view*)",
+      "PowerShell(gh pr list*)",
+      "PowerShell(gh pr checks*)",
+      "PowerShell(gh pr status*)"
     ],
     "deny": [
       "Bash(git push*--force*)",
