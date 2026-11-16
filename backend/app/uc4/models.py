@@ -49,3 +49,46 @@ class EvidenceItem(BaseModel):
     kind: EvidenceKind
     text: str  # one line a human (and the LLM) can read, with numbers
     data: dict[str, Any] = Field(default_factory=dict)  # the same numbers, machine-readable
+
+
+CauseStatus = Literal["likely", "probable", "unsupported"]
+
+
+class SignalLink(BaseModel):
+    """One yes/no signal and why it counts for or against a cause."""
+
+    signal: str  # e.g. "token_age_over_ttl"
+    present: bool  # True = signal is on; False = an expected key signal is absent
+    ratio: float  # P(signal value | this cause) / average over the other causes; > 1 favours this cause
+    evidence_ids: list[str] = Field(default_factory=list)  # EvidenceItem ids that show it
+
+
+class RankedCause(BaseModel):
+    """One candidate cause, ranked by naive Bayes. Never "confirmed": a human confirms by running first_check."""
+
+    rank: int  # 1 = most likely
+    cause: str  # e.g. "token_expired"
+    failure_class: str  # e.g. "authentication"
+    confidence: float  # posterior with equal priors; sums to 1 over all causes
+    status: CauseStatus  # likely: all confirming signals + confidence >= threshold; probable: confidence >= threshold
+    near_tie: bool  # confidence within the margin of the next or previous cause
+    supporting: list[SignalLink] = Field(default_factory=list)
+    contradicting: list[SignalLink] = Field(default_factory=list)
+    confirming_seen: list[str] = Field(default_factory=list)
+    confirming_missing: list[str] = Field(default_factory=list)
+    first_check: Optional[str] = None
+    escalate: bool = False  # the first check needs privileged access
+    missing_info: list[str] = Field(default_factory=list)  # from the "missing" evidence items
+
+
+Outcome = Literal["RECOMMEND", "CLARIFY"]
+
+
+class GateDecision(BaseModel):
+    """What the pipeline does next: recommend the top cause, or ask for the missing information."""
+
+    outcome: Outcome
+    escalate: bool  # RECOMMEND and the top cause's first check needs privileged access
+    top_cause: Optional[str] = None
+    reasons: list[str] = Field(default_factory=list)  # why CLARIFY (empty for RECOMMEND)
+    missing_info: list[str] = Field(default_factory=list)

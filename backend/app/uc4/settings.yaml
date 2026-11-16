@@ -43,3 +43,37 @@ routes:
   "GET /v1/search":
     service: search-api
     dependencies: [search-cluster]
+
+rank:
+  # Tuned on the validation split by scripts/tune_rank.py (it rewrites these two lines).
+  confidence_threshold: 0.825
+  near_tie_margin: 0.25
+  # A signal only counts for/against a cause when its ratio is above this (or below 1/this).
+  # Avoids listing near-neutral signals (ratio 0.9 or 1.1) as evidence.
+  min_ratio: 1.2
+  # Signals that say "data is missing": any of these on -> CLARIFY.
+  clarify_signals: [metrics_missing, dep_metrics_missing, auth_fields_missing, isolated_failure,
+                    ratelimit_headers_missing, window_logs_missing]
+
+# Which evidence items show a signal. First matching pattern wins (fnmatch: * = anything).
+# Values are evidence id prefixes. change: items are cited only when marked related.
+signal_evidence:
+  - [metrics_missing, ["missing:endpoint_metrics"]]
+  - [dep_metrics_missing, ["missing:dependency_metrics"]]
+  - [auth_fields_missing, ["missing:auth_details"]]
+  - [ratelimit_headers_missing, ["missing:rate_limit_headers"]]
+  - [isolated_failure, ["missing:other_failures", "missing:other_requests", "traffic:window"]]
+  - [window_logs_missing, ["missing:other_requests", "traffic:window"]]
+  - ["status_*", ["request:"]]
+  - ["code_*", ["request:"]]
+  - [msg_tls, ["request:"]]
+  - ["dep_*", ["metric:service:"]]
+  - [error_rate_spike, ["metric:endpoint:"]]
+  - [endpoint_latency_spike, ["metric:endpoint:"]]
+  - [traffic_spike, ["metric:endpoint:"]]
+  - [latency_near_gateway_timeout, ["request:", "metric:endpoint:"]]
+  - [recent_deploy, ["change:"]]
+  - [single_client_dominant, ["traffic:window"]]
+  - [duplicate_idempotency_keys, ["traffic:window"]]
+  - [prior_timeouts, ["traffic:window"]]
+  - ["*", ["request:"]]
