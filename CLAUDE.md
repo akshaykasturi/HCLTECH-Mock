@@ -4,6 +4,8 @@ Five people build one app, each with their own Claude Code. These rules keep all
 They are guidance: anyone can work on any file, push their own branch and merge their own pull request once CI is green.
 The design and the file map are imported below from docs/ARCHITECTURE.md. Read them before writing code.
 
+Current problem: UC4 API failure diagnosis. Read docs/UC4-PLAN.md before any UC4 task.
+
 @docs/ARCHITECTURE.md
 
 ## Who you are working for
