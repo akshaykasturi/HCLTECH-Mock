@@ -4,6 +4,9 @@ We are building UC4: an API failure diagnosis assistant (HCLTech hackathon mock)
 Read docs/PLAN.md first. Data is described in backend/data/eval/uc4/DATA_CARD.md.
 
 ## Design rules
+Current problem: UC4 API failure diagnosis. Read docs/UC4-PLAN.md before any UC4 task.
+
+@docs/ARCHITECTURE.md
 
 - Code decides; the LLM only explains; code checks the LLM's output before anyone sees it.
 - Never show a probable cause as confirmed. Causes are "likely" or "probable".
