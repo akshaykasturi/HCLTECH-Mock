@@ -50,6 +50,8 @@ These are ideas, not fixed rules. Agree on shared shapes (case, evidence item, c
   - `kind`: `request` | `traffic` | `metric` | `change` | `missing`.
   - `text`: one readable line with the numbers (what the LLM sees and quotes).
   - `data`: the same numbers as a dict (what signals, ranking and the output check use; never parse `text`).
+  - Logs are a **sample** of traffic: `traffic:window` gives only mix and shares (status mix, error codes, failed share, clients, top client share), never counts per minute or count changes. Traffic volume and error rate come only from metrics (`rps`, `error_rate` in `metric:*` items).
   - Window = `[window_start, window_end]`; baseline = the 60 minutes before `window_start`; changes from 60 minutes before `onset_ts` to `window_end`. Sizes live in `backend/app/uc4/settings.yaml`.
-  - Evidence never reads labels and never copies `request_headers`; error messages are masked (emails, tokens, keys, IPs).
+  - Evidence never reads labels and never copies `request_headers`; error messages are masked (emails, tokens, keys, IPs) with a simple regex until the shared redaction function (ai/redact) is merged.
+  - The focal request keeps `client_ip_allowlisted` and `client_ip_masked` (last part hidden, e.g. `203.0.113.x`).
   - Try it: `.\.venv\Scripts\python.exe scripts\show_evidence.py UC4-0050` (add `--data` for the numbers).
