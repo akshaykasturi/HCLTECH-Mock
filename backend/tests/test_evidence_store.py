@@ -4,7 +4,7 @@ import pytest
 from app.uc4.evidence import collect_evidence
 from app.uc4.store import get_case, logs_by_correlation_id, logs_for_route
 
-KINDS = {"request", "traffic", "metric", "change", "missing"}
+KINDS = {"request", "traffic", "metric", "change", "doc", "missing"}
 
 
 def test_get_case_and_unknown_case() -> None:

@@ -5,6 +5,7 @@ collect_evidence(case) looks where an on-call engineer would look:
   traffic  - all requests on the route in the window vs the hour before
   metric   - endpoint and dependency metrics in the window vs the hour before
   change   - deploys and config changes shortly before / during the incident
+  doc      - what the API documentation says about this error (doc_search.py)
   missing  - what we expected to find but could not
 
 Rules:
@@ -14,13 +15,14 @@ Rules:
   - Each item has a stable id, one readable line with numbers, and the raw numbers in `data`.
 """
 from collections import Counter
+from http import HTTPStatus
 from datetime import datetime, timedelta
 from statistics import mean
 from typing import Any, Optional
 
 from app.uc4.models import Case, EvidenceItem
 from app.uc4.settings import get_settings
-from app.uc4 import store
+from app.uc4 import doc_search, store
 from app.uc4.redact import mask_text
 
 # Only these response headers are copied (they carry no secrets).
@@ -254,6 +256,59 @@ def _change_item(case: Case, change: dict[str, Any], dependencies: list[str]) ->
     return EvidenceItem(id=f"change:{change['ts']}:{service}", kind="change", text=text, data=data)
 
 
+# ---------- documentation ----------
+
+def doc_queries(row: dict[str, Any], route: str) -> tuple[str, str]:
+    """(error query, full query) for doc search, from the focal request.
+
+    error query: status + its standard HTTP name ("429 Too Many Requests", the way the troubleshooting
+                 headings are written) + error code + upstream service: what the error MEANS.
+    full query:  the same plus the route: finds the route's own endpoint doc.
+    Route words alone would otherwise crowd out the error's docs (inventory, sku...).
+    """
+    status = row.get("status")
+    phrase = HTTPStatus(status).phrase if status in HTTPStatus._value2member_map_ else ""
+    code = (row.get("error") or {}).get("code") or ""
+    upstream = (row.get("upstream") or {}).get("service") or ""
+    error_query = " ".join(str(x) for x in (status, phrase, code, upstream) if x)
+    return error_query, " ".join(x for x in (error_query, route) if x)
+
+
+def _doc_item(hit: Any, role: str, query: str, sentences: int) -> EvidenceItem:
+    section = doc_search.get_section(hit.section_id)
+    quote = _masked(doc_search.first_sentences(section.text, sentences))
+    version = f" v{hit.version}" if hit.version else ""
+    text = f'Doc "{hit.title or hit.doc_id}"{version}, section "{hit.heading}": {quote}'
+    data = {"section_id": hit.section_id, "doc_id": hit.doc_id, "title": hit.title, "heading": hit.heading,
+            "version": hit.version, "status": hit.status, "score": hit.score, "rank": hit.rank,
+            "mode": hit.mode, "role": role, "query": query}
+    return EvidenceItem(id=hit.section_id, kind="doc", text=text, data=data)
+
+
+def _doc_items(row: dict[str, Any], route: str) -> list[EvidenceItem]:
+    """Up to evidence_k doc sections: the top hits for what the error means, plus the best troubleshooting
+    section (the report's steps cite it); if that is already in, the best hit for the route instead.
+    Never deprecated. Doc items are for the report only: signals and ranking never read them."""
+    cfg = get_settings()["doc_search"]
+    k, n = cfg["evidence_k"], cfg["quote_sentences"]
+    error_query, full_query = doc_queries(row, route)
+    chosen: list[tuple[Any, str, str]] = []
+
+    def add(hit: Any, role: str, query: str) -> None:
+        if hit is not None and all(hit.section_id != h.section_id for h, _, _ in chosen) and len(chosen) < k:
+            chosen.append((hit, role, query))
+
+    for hit in doc_search.search(error_query, k=max(k - 1, 1)):
+        add(hit, "error", error_query)
+    trouble = doc_search.search(error_query, k=1, doc_id="troubleshooting")
+    if trouble and all(trouble[0].section_id != h.section_id for h, _, _ in chosen):
+        add(trouble[0], "troubleshooting", error_query)
+    else:
+        for hit in doc_search.search(full_query, k=k):
+            add(hit, "route", full_query)
+    return [_doc_item(hit, role, query, n) for hit, role, query in chosen]
+
+
 # ---------- missing ----------
 
 def _missing(what: str, text: str, **data: Any) -> EvidenceItem:
@@ -282,7 +337,7 @@ def _missing_from_request(row: dict[str, Any]) -> list[EvidenceItem]:
 # ---------- main entry point ----------
 
 def collect_evidence(case: Case) -> list[EvidenceItem]:
-    """All evidence for one case, in a fixed order: request, traffic, metric, change, missing."""
+    """All evidence for one case, in a fixed order: request, traffic, metric, change, doc, missing."""
     cfg = get_settings()["evidence"]
     baseline_min = cfg["baseline_minutes"]
     baseline_start = case.window_start - timedelta(minutes=baseline_min)
@@ -334,5 +389,9 @@ def collect_evidence(case: Case) -> list[EvidenceItem]:
     since = case.onset_ts - timedelta(minutes=cfg["change_lookback_minutes"])
     for change in store.changes_between(since, case.window_end):
         items.append(_change_item(case, change, dependencies))
+
+    # doc: what the documentation says about this error (for the report; never read by signals or ranking)
+    if focal:
+        items.extend(_doc_items(focal[0], case.route))
 
     return items + missing

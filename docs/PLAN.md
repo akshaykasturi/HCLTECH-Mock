@@ -16,7 +16,7 @@ evaluation runs the same steps over the validation and test splits
 5. **Failure class**: authentication, authorization, validation, rate_limit, timeout, dependency, server_error.
 6. **Rank causes**: each likely cause with the evidence that supports it AND the evidence against it, plus a confidence.
 7. **Not enough evidence**: answer CLARIFY and list the missing information. No LLM call.
-8. **LLM report**: the LLM only writes the words, from the ranked causes and evidence it is given. Safe, read-only verification steps; ESCALATE when a step needs privileged access.
+8. **LLM report**: the LLM only writes the words, from the ranked causes and evidence it is given. Safe, read-only verification steps; ESCALATE when the fix needs a privileged change by its owner (the checks themselves are read-only).
 9. **Code checks the report**: citations exist, numbers match the evidence, nothing says "confirmed" without proof, no destructive steps, no secrets.
 10. **API + screen + feedback**: the reviewer can confirm, reject or annotate the report (audit-friendly, FR-08).
 11. **Evaluation**: top-1, top-3, MRR, class accuracy, CLARIFY rate, with confidence intervals (`backend/app/analysis/stats.py`).
@@ -70,11 +70,11 @@ These are ideas, not fixed rules. Agree on shared shapes (case, evidence item, c
   - Checks: citations exist and quotes match, only ranked causes, numbers match the cited evidence, no "confirmed" wording, no changing steps, no secrets, outcome consistent. Each returns `Finding`s (`code`, `severity`, `message`, `where`); `apply_findings` removes blocked parts (no cause left -> CLARIFY). `groundedness` = verified citations / all citations. Word lists in `backend/app/uc4/checks.yaml`.
 - **Diagnosis shape** (`backend/app/uc4/models.py`; built by `diagnose(case_id or Case)` in `backend/app/uc4/diagnose.py`; Roshan's API returns it as JSON with `diagnosis.model_dump_json()`):
   - `diagnosis_id` (uuid string), `created_at` (UTC), `case_id`, `route`, `onset_ts`.
-  - `outcome` (`RECOMMEND` | `CLARIFY`) and `escalate` (the top cause's first check needs privileged access).
+  - `outcome` (`RECOMMEND` | `CLARIFY`) and `escalate` (for the top cause, the fix needs a privileged change by its owner; the checks are read-only).
   - `failure_class` (the top cause's class) and `class_confidence` (sum of confidence over that class's causes).
   - `ranked` (list of `RankedCause`), `alternatives` and `tell_apart` (from `GateDecision`).
   - `evidence` (list of `EvidenceItem`), `missing_info`.
-  - `report` (`Report` after `apply_findings`, or null), `report_findings` (`check_report` on the report as written), `groundedness` (0..1), `generator` (`"template"` until an LLM writes the report, then `"llm"`).
+  - `report` (`Report` after `apply_findings`, or null), `report_findings` (`check_report` on the report as written), `groundedness` (0..1, null when nothing is cited), `generator` (`"template"` until an LLM writes the report, then `"llm"`).
   - `trace`: list of `{step, ms, detail}` for `load_case`, `collect_evidence`, `get_signals`, `classifier`, `rank_causes`, `decide`, `report`, `checks`.
   - On **CLARIFY no cause is claimed anywhere**: `ranked` is empty, `failure_class` is null, the report has no causes (it lists missing info and read-only steps to collect it).
   - Labels are never read at diagnose time (test: `test_labels_are_never_read`).
@@ -82,3 +82,11 @@ These are ideas, not fixed rules. Agree on shared shapes (case, evidence item, c
     - classifier (Raswanth): `app/uc4/ml/classifier.py`, `predict_class(line: str) -> class` or `(class, probability)`. `line` is the focal request in the training format `status=.. route=.. code=.. message=..`. Used as a second opinion in the trace only.
     - report writer (Atheesha): `app/uc4/report.py`, `write_report(case, ranked, decision, evidence) -> Report`. Without it, `app/uc4/template_report.py` builds the report from code. Both go through `check_report` and `apply_findings`.
   - Try it: `.\.venv\Scripts\python.exe scripts\diagnose_case.py UC4-0050` (add `--json` for the API payload).
+- **Doc search and doc evidence** (`backend/app/uc4/doc_search.py`, FR-05):
+  - Indexes Roshan's `DocSection`s (`docs_loader.load_docs()`), once per process. `search(query, k, include_deprecated=False)` -> `DocHit` (`section_id`, `doc_id`, `title`, `heading`, `status`, `version`, `score`, `bm25_score`, `dense_score`, `rank`, `mode`).
+  - Hybrid: BM25 (`rank-bm25`) + embeddings (fastembed `BAAI/bge-small-en-v1.5`, via `app/uc4/ml/embed_features.embed_texts`), fused with reciprocal rank fusion (`rrf_k` 60 in `settings.yaml`). Falls back to BM25 if the model can't load. Tests run BM25 only (`UC4_DOC_SEARCH_DENSE=0` in `tests/conftest.py`).
+  - Deprecated sections are removed before ranking unless asked for.
+  - `collect_evidence` adds up to 3 `kind="doc"` items: `id` = the section id (`doc:rate-limits#2`), `text` = `Doc "<title>" v<version>, section "<heading>": <first sentences>`. Two come from the error query (status + HTTP name + error code + upstream), one is the best troubleshooting section (or the best route hit). Doc items are for the report only: signals and ranking never read them (test).
+  - Evaluate: `.\.venv\Scripts\python.exe scripts\eval_doc_search.py` (recall@3/@5, MRR for bm25 / dense / hybrid on `retrieval_gold.jsonl`).
+- **Readable checks and owners** (`backend/app/uc4/checks_text.yaml`, hand-written; `causes.yaml` stays generated): per cause `check_text` (read-only: what to look at, what you'd see if this is the cause; no numbers of its own), `owner` (`{client}`, `@dependency`, `@service` or a name), `owner_why`, `source` doc section. Dependency team names are placeholders. Checks are always read-only; escalation names who owns the **fix**.
+- **Confidence display**: `app/uc4/display.format_confidence` shows > 0.99 / < 0.01; stored numbers are unchanged. Report text says likely/probable in words (numbers in the report must come from evidence). TODO: calibrate on the validation split.

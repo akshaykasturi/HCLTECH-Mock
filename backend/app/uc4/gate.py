@@ -10,6 +10,7 @@ first check and the signals that differ between them, so the engineer knows how 
 """
 from typing import Optional
 
+from app.uc4.display import format_confidence
 from app.uc4.models import EvidenceItem, GateDecision, RankedCause, TellApart
 from app.uc4.rank import distinguishing_signals
 from app.uc4.settings import get_settings
@@ -36,7 +37,7 @@ def tell_apart(candidates: list[RankedCause], signals: dict[str, Optional[bool]]
     cfg = get_settings()["rank"]
     names = [c.cause for c in candidates]
     diffs = distinguishing_signals(names, signals, cfg["tell_apart_min_spread"], cfg["tell_apart_max_signals"])
-    checks = "; ".join(f"{c.cause} ({c.confidence:.2f}): run {c.first_check}" for c in candidates)
+    checks = "; ".join(f"{c.cause} ({format_confidence(c.confidence)}): run {c.first_check}" for c in candidates)
     seen = {True: "on", False: "off", None: "unknown"}
     differ = "; ".join(f"{d.signal} (most likely under {d.favours}; here {seen[d.observed]})" for d in diffs)
     note = f"Not a clear winner. To tell them apart: {checks}. Signals that differ: {differ or 'none'}."

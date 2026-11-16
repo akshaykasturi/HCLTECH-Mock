@@ -8,21 +8,22 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.uc4.diagnose import diagnose  # noqa: E402
+from app.uc4.display import format_confidence  # noqa: E402
 from app.uc4.models import Diagnosis  # noqa: E402
 
 
 def show(d: Diagnosis) -> None:
     print(f"{d.case_id}  {d.route}  onset {d.onset_ts:%Y-%m-%d %H:%M:%S} UTC")
-    head = f"Outcome: {d.outcome}" + ("  (ESCALATE: privileged first check)" if d.escalate else "")
+    head = f"Outcome: {d.outcome}" + ("  (ESCALATE: the fix needs its owner)" if d.escalate else "")
     print(head + f"   generator: {d.generator}   groundedness: {d.groundedness}")
     if d.failure_class:
-        print(f"Class: {d.failure_class} (confidence {d.class_confidence:.2f})")
+        print(f"Class: {d.failure_class} (confidence {format_confidence(d.class_confidence)})")
 
     if d.ranked:
         print("\nTop causes:")
         for r in d.ranked[:3]:
             tie = "  near-tie" if r.near_tie else ""
-            print(f"  {r.rank}. {r.cause:<28} {r.confidence:.2f}  {r.status}{tie}  first check: {r.first_check}")
+            print(f"  {r.rank}. {r.cause:<28} {format_confidence(r.confidence):>6}  {r.status}{tie}  first check: {r.first_check}")
     if d.tell_apart:
         print(f"\n{d.tell_apart.note}")
 
@@ -37,9 +38,11 @@ def show(d: Diagnosis) -> None:
                 print(f"      against [{cite.evidence_id}]")
         print("  Verification steps (read-only):")
         for s in r.verification_steps:
-            print(f"    * {s.action}  -- {s.why}")
-        if r.escalation.needed:
-            print(f"  Escalation to {r.escalation.team}: {r.escalation.reason}")
+            print(f"    * {s.action}")
+            print(f"      ({s.why} Cites: {', '.join(s.cites) or 'nothing'})")
+        if r.escalation.reason:
+            label = "Escalation to" if r.escalation.needed else "Fix owner (no escalation):"
+            print(f"  {label} {r.escalation.team}. {r.escalation.reason}")
         if r.missing_info:
             print("  Missing info:")
             for m in r.missing_info:

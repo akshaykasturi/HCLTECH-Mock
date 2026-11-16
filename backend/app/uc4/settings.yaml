@@ -84,3 +84,12 @@ signal_evidence:
   - [duplicate_idempotency_keys, ["traffic:window"]]
   - [prior_timeouts, ["traffic:window"]]
   - ["*", ["request:"]]
+
+doc_search:
+  # Use embeddings (hybrid search). The tests switch this off with UC4_DOC_SEARCH_DENSE=0 (offline, BM25 only).
+  dense: true
+  # Reciprocal rank fusion constant: rrf = 1/(rrf_k + rank_bm25) + 1/(rrf_k + rank_dense). 60 is the usual value.
+  rrf_k: 60
+  # Doc evidence per case: how many sections, and how many sentences each item quotes.
+  evidence_k: 3
+  quote_sentences: 2
