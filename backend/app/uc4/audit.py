@@ -230,8 +230,13 @@ def _connect(db_path: PathLike) -> sqlite3.Connection:
     if not isinstance(db_path, (str, Path)) or not str(db_path).strip():
         raise AuditValidationError("db_path must be a non-empty path")
     path = Path(db_path)
-    if not path.parent.exists():
-        raise AuditValidationError(f"folder for the audit database does not exist: {path.parent}")
+    # Git does not keep empty folders, so on a fresh clone data/audit/ is missing: create it here,
+    # on every open, so no caller has to remember to (requests work even if startup did not run).
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:  # e.g. a file sits where the folder should be, or no permission
+        raise AuditStorageError(
+            f"cannot create the folder for the audit database ({exc.__class__.__name__}): {path.parent}") from None
     try:
         conn = sqlite3.connect(str(path), isolation_level=None, timeout=5.0)
         conn.row_factory = sqlite3.Row
