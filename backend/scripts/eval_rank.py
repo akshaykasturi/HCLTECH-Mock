@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.analysis.stats import bootstrap_ci, risk_coverage  # noqa: E402
-from app.uc4.diagnose import diagnose  # noqa: E402
+from app.uc4.diagnose import run_code_steps as diagnose  # noqa: E402
 from app.uc4.rank import split_ids  # noqa: E402
 from app.uc4.settings import BACKEND_DIR, get_settings  # noqa: E402
 from app.uc4.store import get_case  # noqa: E402

@@ -3,10 +3,10 @@
 CLARIFY no longer depends on these numbers (only missing evidence gives CLARIFY). They decide when a
 RECOMMEND comes with alternatives ("not a clear winner, here is how to tell them apart").
 Each labelled validation case scores:
-    right top-1, no alternatives shown            +1  (clean answer)
-    right top-1, alternatives shown                0  (harmless, but noise)
-    wrong top-1, true cause among alternatives    +1  (we warned, and pointed at the right one)
-    wrong top-1, true cause not shown             -1  (confidently wrong)
+    right top-1, no alternatives shown            +1    (clean answer)
+    right top-1, alternatives shown               +0.5  (right, but with extra noise)
+    wrong top-1, true cause among alternatives     0    (wrong first, but we warned and showed it)
+    wrong top-1, true cause not shown             -2    (confidently wrong: the worst outcome)
 Threshold first (margin 0), then margin with that threshold. Every value in the best-scoring range is
 equally good on validation; we take the middle of the range so a small data shift does not flip decisions.
 Insufficient cases are decided by the missing-evidence rules alone; they are only checked here.
@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.uc4.diagnose import diagnose  # noqa: E402
+from app.uc4.diagnose import run_code_steps as diagnose  # noqa: E402
 from app.uc4.gate import decide  # noqa: E402
 from app.uc4.rank import rank_causes, split_ids  # noqa: E402
 from app.uc4.settings import SETTINGS_FILE  # noqa: E402
@@ -53,8 +53,8 @@ def main(argv: list[str]) -> int:
     for d in insufficient:
         print(f"  insufficient {d.case.case_id}: {d.decision.outcome} ({'; '.join(d.decision.reasons)})")
 
-    def score(t: float, m: float) -> int:
-        total = 0
+    def score(t: float, m: float) -> float:
+        total = 0.0
         for d in labelled:
             ranked = rank_causes(d.signals, d.evidence, threshold=t, margin=m)
             decision = decide(ranked, d.signals, d.evidence, threshold=t)
@@ -62,9 +62,9 @@ def main(argv: list[str]) -> int:
                 continue
             right = ranked[0].cause == d.case.expected_cause
             if right:
-                total += 0 if decision.alternatives else 1
+                total += 0.5 if decision.alternatives else 1
             else:
-                total += 1 if d.case.expected_cause in decision.alternatives else -1
+                total += 0 if d.case.expected_cause in decision.alternatives else -2
         return total
 
     t_scores = [score(t, 0.0) for t in THRESHOLDS]

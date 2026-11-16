@@ -1,7 +1,7 @@
 """The gate: CLARIFY only on missing evidence; otherwise RECOMMEND, with alternatives when not a clear win."""
 import pytest
 
-from app.uc4.diagnose import diagnose
+from app.uc4.diagnose import run_code_steps as diagnose
 from app.uc4.gate import decide
 from app.uc4.models import EvidenceItem
 from app.uc4.rank import rank_causes
@@ -88,7 +88,8 @@ def test_missing_evidence_item_alone_clarifies(all_diagnoses) -> None:
     assert decision.missing_info == ["no endpoint metrics"]
 
 
-@pytest.mark.parametrize("signal", ["metrics_missing", "dep_metrics_missing", "auth_fields_missing", "isolated_failure"])
+@pytest.mark.parametrize("signal", ["metrics_missing", "dep_metrics_missing", "auth_fields_missing", "isolated_failure",
+                                    "ratelimit_headers_missing"])
 def test_each_missing_data_signal_alone_clarifies(all_diagnoses, signal: str) -> None:
     d = all_diagnoses["UC4-0038"]
     decision = decide(d.ranked, {**d.signals, signal: True}, d.evidence)

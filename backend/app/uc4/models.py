@@ -1,8 +1,11 @@
 """Shared shapes for UC4: a failure case and one piece of evidence."""
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.uc4.report_models import Finding, Report
 
 
 class Case(BaseModel):
@@ -113,3 +116,51 @@ class GateDecision(BaseModel):
     low_confidence: bool = False  # RECOMMEND, but the top confidence is below the threshold
     alternatives: list[str] = Field(default_factory=list)  # every near-tie cause, top first (empty if clear winner)
     tell_apart: Optional[TellApart] = None  # set when alternatives are listed
+
+
+class TraceStep(BaseModel):
+    """One pipeline step: what ran, how long it took, and a short note (never a secret)."""
+
+    step: str  # e.g. "collect_evidence"
+    ms: float
+    detail: str = ""
+
+
+def _new_id() -> str:
+    return str(uuid.uuid4())
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class Diagnosis(BaseModel):
+    """Everything the API returns for one case. JSON-ready: diagnosis.model_dump_json().
+
+    On CLARIFY no cause is claimed anywhere: ranked is empty, failure_class is None, the report has no causes.
+    """
+
+    diagnosis_id: str = Field(default_factory=_new_id)
+    created_at: datetime = Field(default_factory=_now)
+    case_id: str
+    route: str
+    onset_ts: datetime
+
+    outcome: Outcome  # RECOMMEND | CLARIFY
+    escalate: bool  # the top cause's first check needs privileged access
+    failure_class: Optional[str] = None  # the top cause's class
+    class_confidence: Optional[float] = None  # sum of confidence over that class's causes
+
+    ranked: list[RankedCause] = Field(default_factory=list)
+    alternatives: list[str] = Field(default_factory=list)  # near-tie causes, top first (from the gate)
+    tell_apart: Optional[TellApart] = None  # how to tell the alternatives apart (from the gate)
+
+    evidence: list[EvidenceItem] = Field(default_factory=list)
+    missing_info: list[str] = Field(default_factory=list)
+
+    report: Optional[Report] = None  # after apply_findings: blocked parts removed
+    report_findings: list[Finding] = Field(default_factory=list)  # check_report on the report as written
+    groundedness: Optional[float] = None  # verified citations / all citations, as written
+    generator: str = "template"  # "template" until an LLM writes the report
+
+    trace: list[TraceStep] = Field(default_factory=list)
