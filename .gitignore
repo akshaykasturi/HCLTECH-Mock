@@ -23,6 +23,7 @@ backend/data/processed/
 backend/data/index/
 backend/models/
 backend/.cache/
+backend/data/audit/
 *.db
 
 # Personal Claude Code files (each teammate keeps their own)

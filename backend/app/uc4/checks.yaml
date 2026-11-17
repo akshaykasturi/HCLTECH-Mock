@@ -1,0 +1,59 @@
+# Output checks for the LLM report (lead: Atheesha). Read by app/uc4/checks.py.
+# Change words here, not in code.
+
+citations:
+  # A quote shorter than this proves nothing ("ms", "504") and is blocked.
+  min_quote_chars: 8
+
+certainty:
+  # Blocked in the summary and in causes: a cause is only ever "likely" or "probable".
+  phrases:
+    - confirmed
+    - definitely
+    - the root cause is
+    - proven
+    - guaranteed
+    - certainly
+    - "100%"
+  # A phrase is allowed when one of these words is just before it ("not confirmed",
+  # "cannot be confirmed") or just after it ("the root cause is not known").
+  negations: [not, cannot, "can't", never, "isn't", "wasn't", unable]
+  words_before: 3
+  words_after: 1
+
+safe_steps:
+  # Changing or privileged actions. Blocked in verification_steps[].action
+  # ("move to escalation"); Escalation.reason may mention them.
+  verbs:
+    - rotate
+    - revoke
+    - regenerate
+    - restart
+    - redeploy
+    - roll back
+    - rollback
+    - delete
+    - drop
+    - flush
+    - purge
+    - scale
+    - increase pool
+    - increase the pool
+    - change allowlist
+    - change the allowlist
+    - edit config
+    - edit the config
+    - disable
+    - kill
+
+numbers:
+  # A number in the report matches evidence when it is the evidence value rounded to the
+  # digits shown (161 ms matches 160.73; 503 does not match 504). Set in checks.py.
+  # Numbers always allowed (counting words like "1 request" are fine).
+  always_allowed: [0, 1]
+
+fallback:
+  # Written by apply_findings when a part had to be removed. Plain, no claims.
+  summary: "The summary was removed because it did not pass the output checks."
+  escalation_reason: "The reason was removed because it did not pass the output checks."
+  missing_info: "None of the proposed causes is supported by evidence that passed the output checks."

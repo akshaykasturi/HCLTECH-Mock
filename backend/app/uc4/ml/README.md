@@ -16,6 +16,8 @@ Transformer names for `GridSearchCV`: `text_word`, `text_char`, `cat`, `num`, `n
 
 Inspect the features: in `backend`, `.\.venv\Scripts\python.exe scripts\inspect_features.py`.
 
+Baselines for the evaluation report are in app/analysis/baselines.py.
+
 ## How to plug a classifier
 
 ```python
